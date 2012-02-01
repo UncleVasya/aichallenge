@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from random import randrange, choice, shuffle, randint, seed, random
-from math import cos, pi, sin, sqrt
+from math import cos, pi, sin, sqrt, atan
 from collections import deque, defaultdict
 
 from fractions import Fraction
@@ -325,15 +325,23 @@ class Asteroids(Game):
         # TODO this doesn't compute with the bool(fire) in parse_orders
         if fire == "1" and ship["fire_when"] <= 0:
             ship["fire_when"] = 10
+            impetus = 10
+            ihead = ship["heading"]
+            bullet_dx = impetus * cos(ihead)
+            bullet_dy = impetus * sin(ihead)
+            bullet_x_speed = ship["current_speed"][0] + bullet_dx
+            bullet_y_speed = ship["current_speed"][1] + bullet_dy
+            bullet_heading = atan(bullet_y_speed / bullet_x_speed)
+            bullet_speed = bullet_y_speed / sin(bullet_heading)
             bullet = { "owner": player,
                        "x": ship["x"],
                        "y": ship["y"],
                        "previous_x": ship["x"],
                        "previous_y": ship["y"],
                        "turns_to_live": 12,
-                       "heading": ship["heading"],
+                       "heading": bullet_heading,
                        # add ship's speed to bullet's speed?
-                       "speed": 10 }
+                       "speed": bullet_speed }
             self.bullets.append(bullet)
         ship["processed_this_turn"] = True
 
@@ -347,16 +355,16 @@ class Asteroids(Game):
             asteroid["x"] = self.wrap(asteroid["x"] + dx, self.width)
             asteroid["y"] = self.wrap(asteroid["y"] + dy, self.height)
         for bullet in self.bullets:
-#            else:
-            bullet["previous_x"] = bullet["x"]
-            bullet["previous_y"] = bullet["y"]
-            dx = bullet["speed"] * cos(bullet["heading"])
-            dy = bullet["speed"] * sin(bullet["heading"])
-            bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
-            bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
-            bullet["turns_to_live"] -= 1
             if bullet["turns_to_live"] <= 0:
                 bullets_to_remove.append(bullet)
+            else:
+                bullet["previous_x"] = bullet["x"]
+                bullet["previous_y"] = bullet["y"]
+                dx = bullet["speed"] * cos(bullet["heading"])
+                dy = bullet["speed"] * sin(bullet["heading"])
+                bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
+                bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
+                bullet["turns_to_live"] -= 1
         # players can still move due to inertia even if they didn't give orders
         for player in self.players:
             if not player["processed_this_turn"]:
