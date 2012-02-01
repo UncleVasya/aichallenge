@@ -373,7 +373,10 @@ class Asteroids(Game):
 
     def remove_bullets(self, bullets):
         for bullet in bullets:
-            self.bullets.remove(bullet)
+            try:
+                self.bullets.remove(bullet)
+            except ValueError:
+                pass
 
     def kill_ship(self, ship):
         ship["current_hp"] = 0
