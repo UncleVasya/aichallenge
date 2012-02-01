@@ -325,7 +325,7 @@ class Asteroids(Game):
         # TODO this doesn't compute with the bool(fire) in parse_orders
         if fire == "1" and ship["fire_when"] <= 0:
             ship["fire_when"] = 10
-            impetus = 10
+            impetus = 6
             ihead = ship["heading"]
             bullet_dx = impetus * cos(ihead)
             bullet_dy = impetus * sin(ihead)
