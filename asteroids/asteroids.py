@@ -295,6 +295,17 @@ class Asteroids(Game):
             for player, thrust, turn, fire in orders:
                 self.do_player(player, thrust, turn, fire)
 
+    def wrap(self, v, limit):
+        if v < 0:
+            return self.wrap(v + limit, limit)
+        elif v >= limit:
+            return self.wrap(v - limit, limit)
+        else: 
+            return v
+#    def wrap(self, x, y):
+#        wx = self.sub_wrap(x, self.width)
+#        wy = self.sub_wrap(y, self.height)
+#        return wx, wy
     def do_player(self, player, thrust, turn, fire):
         ship = self.players[player]
         # TODO 0.5 is the ship's max thrust, should become a variable
@@ -306,18 +317,10 @@ class Asteroids(Game):
         current_speed = (ship["current_speed"][0] + tx,
                          ship["current_speed"][1] + ty)
         ship["current_speed"] = current_speed
-        ship["x"] += current_speed[0]
-        # TODO this doesn't work if a ship moves more than self.width or
-        #      self.height in a turn
-        if ship["x"] < 0:
-            ship["x"] += self.width
-        elif ship["x"] >= self.width:
-            ship["x"] -= self.width
         ship["y"] += current_speed[1]
-        if ship["y"] < 0:
-            ship["y"] += self.height
-        elif ship["y"] >= self.height:
-            ship["y"] -= self.height
+        ship["x"] += current_speed[0]
+        ship["x"] = self.wrap(ship["x"], self.width)
+        ship["y"] = self.wrap(ship["y"], self.height)
         ship["fire_when"] -= 1
         # TODO this doesn't compute with the bool(fire) in parse_orders
         if fire == "1" and ship["fire_when"] <= 0:
@@ -335,48 +338,34 @@ class Asteroids(Game):
         ship["processed_this_turn"] = True
 
     def do_non_player_movement(self):
+        bullets_to_remove = []
         for asteroid in self.asteroids:
-            dx = asteroid["speed"] * cos(asteroid["heading"])
-            dy = asteroid["speed"] * sin(asteroid["heading"])
             asteroid["previous_x"] = asteroid["x"]
             asteroid["previous_y"] = asteroid["y"]
-            asteroid["x"] += dx
-            asteroid["y"] += dy
-            # TODO this doesn't work if an asteroid moves more than self.width
-            #      or self.height in a turn
-            if asteroid["x"] < 0:
-                asteroid["x"] += self.width
-            elif asteroid["x"] >= self.width:
-                asteroid["x"] -= self.width
-            if asteroid["y"] < 0:
-                asteroid["y"] += self.height
-            elif asteroid["y"] >= self.height:
-                asteroid["y"] -= self.height
+            dx = asteroid["speed"] * cos(asteroid["heading"])
+            dy = asteroid["speed"] * sin(asteroid["heading"])
+            asteroid["x"] = self.wrap(asteroid["x"] + dx, self.width)
+            asteroid["y"] = self.wrap(asteroid["y"] + dy, self.height)
         for bullet in self.bullets:
+#            else:
+            bullet["previous_x"] = bullet["x"]
+            bullet["previous_y"] = bullet["y"]
+            dx = bullet["speed"] * cos(bullet["heading"])
+            dy = bullet["speed"] * sin(bullet["heading"])
+            bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
+            bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
+            bullet["turns_to_live"] -= 1
             if bullet["turns_to_live"] <= 0:
-                self.bullets.remove(bullet)
-            else:
-                dx = bullet["speed"] * cos(bullet["heading"])
-                dy = bullet["speed"] * sin(bullet["heading"])
-                bullet["previous_x"] = bullet["x"]
-                bullet["previous_y"] = bullet["y"]
-                bullet["x"] += dx
-                bullet["y"] += dy
-                bullet["turns_to_live"] -= 1
-                # TODO this doesn't work if an asteroid moves more than
-                #      self.width or self.height in a turn
-                if bullet["x"] < 0:
-                    bullet["x"] += self.width
-                elif bullet["x"] >= self.width:
-                    bullet["x"] -= self.width
-                if bullet["y"] < 0:
-                    bullet["y"] += self.height
-                elif bullet["y"] >= self.height:
-                    bullet["y"] -= self.height
+                bullets_to_remove.append(bullet)
         # players can still move due to inertia even if they didn't give orders
         for player in self.players:
             if not player["processed_this_turn"]:
                 self.do_player(player["player_id"], 0, 0 ,0)
+        self.remove_bullets(bullets_to_remove)
+
+    def remove_bullets(self, bullets):
+        for bullet in bullets:
+            self.bullets.remove(bullet)
 
     def kill_ship(self, ship):
         ship["current_hp"] = 0
@@ -384,6 +373,7 @@ class Asteroids(Game):
     def do_collisions(self):
         asteroids_to_break = []
         ships_to_kill = []
+        bullets_to_remove = []
         for ship in self.players:  # should become self.ships
             sx = ship["x"]
             sy = ship["y"]
@@ -423,7 +413,7 @@ class Asteroids(Game):
                 # TODO 5 is the ship's size, should become a variable
                 if distance <= 5:
                     self.score[bullet["owner"]] += 1
-                    self.bullets.remove(bullet)
+                    bullets_to_remove.append(bullet)
                     ships_to_kill.append(ship)
                     break
         for asteroid in self.asteroids:
@@ -443,8 +433,9 @@ class Asteroids(Game):
                 asteroid_radius = (category + 1) * (category + 1)
                 if distance <= asteroid_radius:
                     asteroids_to_break.append(asteroid)
-                    self.bullets.remove(bullet)
+                    bullets_to_remove.append(bullet)
                     break
+        self.remove_bullets(bullets_to_remove)
         for ship in ships_to_kill:
             self.kill_ship(ship)
         for asteroid in asteroids_to_break:
