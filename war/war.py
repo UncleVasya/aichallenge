@@ -13,7 +13,7 @@ try:
 except ImportError:
     from sys import maxsize as maxint
 
-class Asteroids(Game):
+class War(Game):
     def __init__(self, options=None):
         # setup options
         map_text = options['map']
@@ -36,8 +36,8 @@ class Asteroids(Game):
         self.turn = 0
         self.num_players = len(map_data["players"])
 
-        self.asteroids = map_data["asteroids"]
-        self.bullets = []
+#        self.asteroids = map_data["asteroids"]
+#        self.bullets = []
         self.players = map_data["players"]
 
         # used to cutoff games early
@@ -54,6 +54,9 @@ class Asteroids(Game):
         # initialize size
         self.height, self.width = map_data['size']
 
+        # declare territories and connections
+        self.territory = map_data['territories']
+        self.connection = map_data['connections']
         # for scenarios, the map file is followed exactly
         if self.scenario:
             # initialize ants
@@ -93,7 +96,8 @@ class Asteroids(Game):
         """ Parse the map_text into a more friendly data structure """
         width = None
         height = None
-        asteroids = []
+        territory = []
+        connection = []
         players = []
 
         for line in map_text.split("\n"):
@@ -110,46 +114,61 @@ class Asteroids(Game):
                 width = int(value)
             elif key == "height":
                 height = int(value)
-            elif key == "a":
+            elif key == "territory":
                 values = value.split()
-                category = int(values[0])
-                x = float(values[1])
-                y = float(values[2])
-                heading = float(values[3])
-                speed = float(values[4])
-                asteroids.append({"category": category,
+                t_id = int(values[0])
+                x = int(values[1])
+                y = int(values[2])
+                territory.append({"territory_id": t_id,
                                   "x": x,
-                                  "y": y,
-                                  "heading": heading,
-                                  "speed": speed,
-                                  "previous_x": x,
-                                  "previous_y": y})
-            elif key == 'p':
+                                  "y": y})
+            elif key == "connection":
                 values = value.split()
-                id = int(values[0])
-                x = float(values[1])
-                y = float(values[2])
-                heading = float(values[3])
-                speed = float(values[4])
-                current_x = speed * cos(heading)
-                current_y = speed * sin(heading)
-                players.append({"player_id": id,
-                                "x": x,
-                                "y": y,
-                                "heading": heading,
-                                "speed": speed,
+                connect_a = int(values[0])
+                connect_b = int(values[1])
+                connection.append({"a": connect_a,
+                                   "b": connect_b})
+#            elif key == "a":
+#                values = value.split()
+#                category = int(values[0])
+#                x = float(values[1])
+#                y = float(values[2])
+#                heading = float(values[3])
+#                speed = float(values[4])
+#                asteroids.append({"category": category,
+#                                  "x": x,
+#                                  "y": y,
+#                                  "heading": heading,
+#                                  "speed": speed,
+#                                  "previous_x": x,
+#                                  "previous_y": y})
+#            elif key == 'p':
+#                values = value.split()
+#                id = int(values[0])
+#                x = float(values[1])
+#                y = float(values[2])
+#                heading = float(values[3])
+#                speed = float(values[4])
+#                current_x = speed * cos(heading)
+#                current_y = speed * sin(heading)
+#                players.append({"player_id": id,
+#                                "x": x,
+#                                "y": y,
+#                                "heading": heading,
+#                                "speed": speed,
                                 # why combine these?
-                                "current_speed": (current_x, current_y),
-                                "current_hp": 2,
+#                                "current_speed": (current_x, current_y),
+#                                "current_hp": 2,
                                 # previous_ is for (future) collision detection
-                                "previous_x": x,
-                                "previous_y": y,
-                                "fire_when": 0,
-                                "processed_this_turn": False})
+#                                "previous_x": x,
+#                                "previous_y": y,
+#                                "fire_when": 0,
+#                                "processed_this_turn": False})
 
         return {
             "size":      (width, height),
-            "asteroids": asteroids,
+            "territories": territory,
+            "connections": connection,
             "players":   players
         }
 
@@ -172,9 +191,14 @@ class Asteroids(Game):
         """
         changes = []
         changes.extend(sorted(
-            ['p', p["player_id"], p["x"], p["y"], p["heading"],
-                  p["current_speed"][0], p["current_speed"][1]]
+            ['p', p["player_id"], p["x"], p["y"]]
             for p in self.players if self.is_alive(p["player_id"])))
+        changes.extend(sorted(
+            ['t', t["territory_id"], t["x"], t["y"]
+            for t in self.territory))
+        changes.extend(sorted(
+            ['c', c["a"], c["b"]]
+            for c in self.connection))
         changes.extend(sorted(
             ["a", a["category"], a["x"], a["y"], a["heading"], a["speed"]]
             for a in self.asteroids))
@@ -580,7 +604,16 @@ class Asteroids(Game):
         result.append(['height', self.height])
         result.append(['turns', self.turns])
         result.append(['player_seed', self.player_seed])
-        # information hidden from players
+        result.extend(sorted(
+            ['p', p["player_id"], p["x"], p["y"]]
+            for p in self.players if self.is_alive(p["player_id"])))
+        result.extend(sorted(
+            ['t', t["territory_id"], t["x"], t["y"]
+            for t in self.territory))
+        result.extend(sorted(
+            ['c', c["a"], c["b"]]
+            for c in self.connection))
+         # information hidden from players
         #if player is None:
         #    result.append(['food_start', self.food_start])
         #    for line in self.get_map_output():
