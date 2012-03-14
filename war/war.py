@@ -40,8 +40,8 @@ class War(Game):
 #        self.bullets = []
 #        self.players = map_data["players"]
         self.players = []
-        for count in num_players:
-            self.players.append(dict(zip(["score", "armies_to_place", [0, 0]]))
+        for count in range(0, self.num_players):
+            self.players.append(dict(zip(["score", "armies_to_place"], [0, 0])))
         # used to cutoff games early
         self.cutoff = None
         self.cutoff_bot = None # Can be ant owner, FOOD or LAND
