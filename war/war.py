@@ -34,11 +34,11 @@ class War(Game):
         map_data = self.parse_map(map_text)
 
         self.turn = 0
-        self.num_players = len(map_data["players"])
+        self.num_players = map_data["players"]
 
 #        self.asteroids = map_data["asteroids"]
 #        self.bullets = []
-        self.players = map_data["players"]
+#        self.players = map_data["players"]
 
         # used to cutoff games early
         self.cutoff = None
@@ -98,7 +98,7 @@ class War(Game):
         height = None
         territory = []
         connection = []
-        players = []
+        num_players = None
 
         for line in map_text.split("\n"):
             line = line.strip()
@@ -114,14 +114,22 @@ class War(Game):
                 width = int(value)
             elif key == "height":
                 height = int(value)
+            elif key == "players":
+                num_players = int(value)
             elif key == "territory":
                 values = value.split()
                 t_id = int(values[0])
-                x = int(values[1])
-                y = int(values[2])
+                group = int(values[1])
+                x = int(values[2])
+                y = int(values[3])
+                owner = int(values[4])
+                armies = int(values[5])
                 territory.append({"territory_id": t_id,
+                                  "group": group,
                                   "x": x,
-                                  "y": y})
+                                  "y": y,
+                                  "owner": owner,
+                                  "armies": armies})
             elif key == "connection":
                 values = value.split()
                 connect_a = int(values[0])
@@ -142,7 +150,8 @@ class War(Game):
 #                                  "speed": speed,
 #                                  "previous_x": x,
 #                                  "previous_y": y})
-#            elif key == 'p':
+#            elif key == 'players':
+#                num_players = int(value)
 #                values = value.split()
 #                id = int(values[0])
 #                x = float(values[1])
@@ -156,7 +165,7 @@ class War(Game):
 #                                "y": y,
 #                                "heading": heading,
 #                                "speed": speed,
-                                # why combine these?
+#                                # why combine these?
 #                                "current_speed": (current_x, current_y),
 #                                "current_hp": 2,
                                 # previous_ is for (future) collision detection
@@ -169,7 +178,7 @@ class War(Game):
             "size":      (width, height),
             "territories": territory,
             "connections": connection,
-            "players":   players
+            "players": num_players
         }
 
     def render_changes(self, player):
@@ -194,7 +203,7 @@ class War(Game):
             ['p', p["player_id"], p["x"], p["y"]]
             for p in self.players if self.is_alive(p["player_id"])))
         changes.extend(sorted(
-            ['t', t["territory_id"], t["x"], t["y"]
+            ['t', t["territory_id"], t["x"], t["y"]]
             for t in self.territory))
         changes.extend(sorted(
             ['c', c["a"], c["b"]]
@@ -532,10 +541,10 @@ class War(Game):
 
     def finish_game(self):
         """ Called by engine at the end of the game """
-        players = self.remaining_players()
-        if len(players) == 1:
-            for player in range(self.num_players):
-                self.score[player] += self.bonus[player]
+#        players = self.remaining_players()
+#        if len(players) == 1:
+#            for player in range(self.num_players):
+#                self.score[player] += self.bonus[player]
 
         self.calc_significant_turns()
 
@@ -608,7 +617,7 @@ class War(Game):
             ['p', p["player_id"], p["x"], p["y"]]
             for p in self.players if self.is_alive(p["player_id"])))
         result.extend(sorted(
-            ['t', t["territory_id"], t["x"], t["y"]
+            ['t', t["territory_id"], t["x"], t["y"]]
             for t in self.territory))
         result.extend(sorted(
             ['c', c["a"], c["b"]]
@@ -681,8 +690,8 @@ class War(Game):
         """  Used by engine to report stats
         """
         stats = {}
-        stats["asteroids"] = len(self.asteroids)
-        stats["bullets"] = len(self.bullets)
+        stats["territory"] = len(self.territory)
+        stats["connection"] = len(self.connection)
         stats['score'] = self.score
         stats['s_alive'] = [1 if self.is_alive(player) else 0
                             for player in range(self.num_players)]
