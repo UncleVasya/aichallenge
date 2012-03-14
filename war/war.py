@@ -39,7 +39,9 @@ class War(Game):
 #        self.asteroids = map_data["asteroids"]
 #        self.bullets = []
 #        self.players = map_data["players"]
-
+        self.players = []
+        for count in num_players:
+            self.players.append(dict(zip(["score", "armies_to_place", [0, 0]]))
         # used to cutoff games early
         self.cutoff = None
         self.cutoff_bot = None # Can be ant owner, FOOD or LAND
@@ -116,7 +118,7 @@ class War(Game):
                 height = int(value)
             elif key == "players":
                 num_players = int(value)
-            elif key == "territory":
+            elif key == "t":
                 values = value.split()
                 t_id = int(values[0])
                 group = int(values[1])
@@ -130,50 +132,12 @@ class War(Game):
                                   "y": y,
                                   "owner": owner,
                                   "armies": armies})
-            elif key == "connection":
+            elif key == "c":
                 values = value.split()
                 connect_a = int(values[0])
                 connect_b = int(values[1])
                 connection.append({"a": connect_a,
                                    "b": connect_b})
-#            elif key == "a":
-#                values = value.split()
-#                category = int(values[0])
-#                x = float(values[1])
-#                y = float(values[2])
-#                heading = float(values[3])
-#                speed = float(values[4])
-#                asteroids.append({"category": category,
-#                                  "x": x,
-#                                  "y": y,
-#                                  "heading": heading,
-#                                  "speed": speed,
-#                                  "previous_x": x,
-#                                  "previous_y": y})
-#            elif key == 'players':
-#                num_players = int(value)
-#                values = value.split()
-#                id = int(values[0])
-#                x = float(values[1])
-#                y = float(values[2])
-#                heading = float(values[3])
-#                speed = float(values[4])
-#                current_x = speed * cos(heading)
-#                current_y = speed * sin(heading)
-#                players.append({"player_id": id,
-#                                "x": x,
-#                                "y": y,
-#                                "heading": heading,
-#                                "speed": speed,
-#                                # why combine these?
-#                                "current_speed": (current_x, current_y),
-#                                "current_hp": 2,
-                                # previous_ is for (future) collision detection
-#                                "previous_x": x,
-#                                "previous_y": y,
-#                                "fire_when": 0,
-#                                "processed_this_turn": False})
-
         return {
             "size":      (width, height),
             "territories": territory,
@@ -199,21 +163,24 @@ class War(Game):
             output.
         """
         changes = []
-        changes.extend(sorted(
-            ['p', p["player_id"], p["x"], p["y"]]
-            for p in self.players if self.is_alive(p["player_id"])))
-        changes.extend(sorted(
-            ['t', t["territory_id"], t["x"], t["y"]]
-            for t in self.territory))
+#        changes.extend(sorted(
+#            ['p', p["player_id"], p["x"], p["y"]]
+#            for p in self.players if self.is_alive(p["player_id"])))
         changes.extend(sorted(
             ['c', c["a"], c["b"]]
             for c in self.connection))
-        changes.extend(sorted(
-            ["a", a["category"], a["x"], a["y"], a["heading"], a["speed"]]
-            for a in self.asteroids))
-        changes.extend(sorted(
-            ["b", b["owner"], b["x"], b["y"], b["heading"], b["speed"]]
-            for b in self.bullets))
+        result.extend(sorted(
+            ['t', t["territory_id"], t["group"], t["x"], t["y"], t["owner"], t["armies"]]
+            for t in self.territory))
+#        result.extend(sorted(
+#            ['c', c["a"], c["b"]]
+#            for c in self.connection))
+ #        changes.extend(sorted(
+#            ["a", a["category"], a["x"], a["y"], a["heading"], a["speed"]]
+#            for a in self.asteroids))
+#        changes.extend(sorted(
+#            ["b", b["owner"], b["x"], b["y"], b["heading"], b["speed"]]
+#            for b in self.bullets))
         return changes
 
     def parse_orders(self, player, lines):
@@ -613,11 +580,11 @@ class War(Game):
         result.append(['height', self.height])
         result.append(['turns', self.turns])
         result.append(['player_seed', self.player_seed])
+#        result.extend(sorted(
+#            ['p', p["player_id"], p["x"], p["y"]]
+#            for p in self.players if self.is_alive(p["player_id"])))
         result.extend(sorted(
-            ['p', p["player_id"], p["x"], p["y"]]
-            for p in self.players if self.is_alive(p["player_id"])))
-        result.extend(sorted(
-            ['t', t["territory_id"], t["x"], t["y"]]
+            ['t', t["territory_id"], t["group"], t["x"], t["y"], t["owner"], t["armies"]]
             for t in self.territory))
         result.extend(sorted(
             ['c', c["a"], c["b"]]
