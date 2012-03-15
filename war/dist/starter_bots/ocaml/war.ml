@@ -21,21 +21,27 @@ type game_setup =
  }
 ;;
 
-type body =
+type player =
  {
-   id : int;
-   x : float;
-   y : float;
-   heading : float;
-   speed : float;
+   p_id : int;
+   score : int;
+   armies_to_place : int;
  }
 ;;
 
-type player =
+type territory =
  {
-   p_body : body;
-   x_speed : float;
-   y_speed : float;
+   t_id : int;
+   group : int;
+   owner : int;
+   armies : int;
+ }
+;;
+
+type connection =
+ {
+   connect_from : int;
+   connect_to : int
  }
 ;;
 
@@ -43,13 +49,13 @@ type game_state =
  {
    setup : game_setup;
    go_time : float;
-   mutable asteroids : body list;
-   mutable bullets : body list;
+   mutable territories : territory list;
+   mutable connections : connection list;
    mutable players : player list;
  }
 ;;
 
-type order = (float * float * int);;
+(* type order = (float * float * int);; *)
 
 (* Begin input processing stuff *)
 
@@ -66,52 +72,46 @@ let sscanf_cps fmt cont_ok cont_fail s =
 let clear_gstate gstate =
    if gstate.setup.turn < 1 then () else
      (
-      gstate.asteroids <- [];
-      gstate.bullets <- [];
+      gstate.territories <- [];
+      gstate.connections <- [];
       gstate.players <- [];
      )
 ;;
 
-let new_body t1 t2 t3 t4 t5 =
- {
-   id = t1;
-   x = t2;
-   y = t3;
-   heading = t4;
-   speed = t5
- }
+let add_connection gstate t1 t2 =
+   let c = {connect_from = t1; connect_to = t2} in
+      gstate.connections <- c :: gstate.connections
 ;;
 
-let add_asteroid gstate t1 t2 t3 t4 t5 =
-   let a = new_body t1 t2 t3 t4 t5 in
-      gstate.asteroids <- a :: gstate.asteroids
+let add_territory gstate t1 t2 t3 t4 =
+   let t = {t_id = t1; group = t2; owner = t3; armies = t4} in
+      gstate.territories <- t :: gstate.territories
 ;;
 
-let add_bullet gstate t1 t2 t3 t4 t5 =
-   let b = new_body t1 t2 t3 t4 t5 in
-      gstate.bullets <- b :: gstate.bullets
-;;
-
-let add_player gstate t1 t2 t3 t4 t5 t6 =
-   let b = new_body t1 t2 t3 t4 0.0 in
-   let p = {p_body = b; x_speed = t5; y_speed = t6} in
+let add_player gstate t1 t2 t3 =
+   let p = {p_id = t1; score = t2; armies_to_place = t3} in
       gstate.players <- p :: gstate.players
 ;;
 
-let five_term gstate key t1 t2 t3 t4 t5 =
+let four_term gstate key t1 t2 t3 t4 =
    match key with
-    | "a" -> add_asteroid gstate t1 t2 t3 t4 t5
-    | "b" -> add_bullet gstate t1 t2 t3 t4 t5
+    | "t" -> add_territory gstate t1 t2 t3 t4
     | _ -> ()
 ;;
 
-let six_term gstate key t1 t2 t3 t4 t5 t6 =
+let three_term gstate key t1 t2 t3 =
    match key with
-    | "p" -> add_player gstate t1 t2 t3 t4 t5 t6
+    | "p" -> add_player gstate t1 t2 t3
     | _ -> ()
 ;;
 
-let two_term gstate key value =
+let two_term gstate key t1 t2 =
+   match key with
+    | "c" -> add_connection gstate t1 t2
+    | _ -> ()
+;;
+
+let one_term gstate key value =
    match key with
     | "turn" -> gstate.setup.turn <- value
     | "width" -> gstate.setup.width <- value
@@ -124,11 +124,14 @@ let two_term gstate key value =
 ;;
 
 let add_line gstate line =
-   sscanf_cps "%s %d %f %f %f %f %f" (six_term gstate)
+   sscanf_cps "%s %d %d %d %d" (four_term gstate)
      (
-      sscanf_cps "%s %d %f %f %f %f" (five_term gstate)
+      sscanf_cps "%s %d %d %d" (three_term gstate)
         (
-         sscanf_cps "%s %d" (two_term gstate) (fun _ -> ())
+         sscanf_cps "%s %d %d" (two_term gstate)
+           (
+            sscanf_cps "%s %d" (one_term gstate) (fun _ -> ())
+           )
         )
      )
      (uncomment line)
@@ -204,8 +207,8 @@ let loop engine =
      {
       setup = proto_setup;
       go_time = -1.0;
-      asteroids = [];
-      bullets = [];
+      territories = [];
+      connections = [];
       players = []
      }
   in
