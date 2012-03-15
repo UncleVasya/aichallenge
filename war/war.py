@@ -170,7 +170,7 @@ class War(Game):
         changes.extend(sorted(
             ['c', c["a"], c["b"]]
             for c in self.connection))
-        result.extend(sorted(
+        changes.extend(sorted(
             ['t', t["territory_id"], t["group"], t["x"], t["y"], t["owner"], t["armies"]]
             for t in self.territory))
 #        result.extend(sorted(
@@ -294,7 +294,8 @@ class War(Game):
         """
         for orders in self.orders:
             for player, thrust, turn, fire in orders:
-                self.do_player(player, thrust, turn, fire)
+                pass
+#                self.do_player(player, thrust, turn, fire)
 
     def wrap(self, v, limit):
         if v < 0:
@@ -530,8 +531,8 @@ class War(Game):
         for player in self.players:
             player["processed_this_turn"] = False
         self.do_orders()
-        self.do_non_player_movement()
-        self.do_collisions()
+#        self.do_non_player_movement()
+#        self.do_collisions()
         # record score in score history
         for i, s in enumerate(self.score):
             if self.is_alive(i):
