@@ -1,6 +1,4 @@
-(* ocaml Asteroids starter package. Code has been borrowed from the ocaml
- * Ants starter package, which in turn borrwed from the PlanetWars package.
- *)
+(* ocaml Wargame starter package. Reworking of Asteroids starter. *)
 
 let out_chan = stderr (* open_out "mybot_err.log" *);;
 
