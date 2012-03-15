@@ -41,7 +41,8 @@ class War(Game):
 #        self.players = map_data["players"]
         self.players = []
         for count in range(0, self.num_players):
-            self.players.append(dict(zip(["player_id", "score", "armies_to_place"], [count, 0, 0])))
+            self.players.append(dict(zip(
+                ["player_id", "score", "armies_to_place"], [count, 0, 0])))
         # used to cutoff games early
         self.cutoff = None
         self.cutoff_bot = None # Can be ant owner, FOOD or LAND
@@ -163,9 +164,9 @@ class War(Game):
             output.
         """
         changes = []
-#        changes.extend(sorted(
-#            ['p', p["player_id"], p["x"], p["y"]]
-#            for p in self.players if self.is_alive(p["player_id"])))
+        changes.extend(sorted(
+            ['p', p["player_id"], p["score"], p["armies_to_place"]]
+            for p in self.players if self.is_alive(p["player_id"])))
         changes.extend(sorted(
             ['c', c["a"], c["b"]]
             for c in self.connection))
@@ -580,16 +581,16 @@ class War(Game):
         result.append(['height', self.height])
         result.append(['turns', self.turns])
         result.append(['player_seed', self.player_seed])
-#        result.extend(sorted(
-#            ['p', p["player_id"], p["x"], p["y"]]
-#            for p in self.players if self.is_alive(p["player_id"])))
         result.extend(sorted(
             ['t', t["territory_id"], t["group"], t["x"], t["y"], t["owner"], t["armies"]]
             for t in self.territory))
         result.extend(sorted(
             ['c', c["a"], c["b"]]
             for c in self.connection))
-         # information hidden from players
+        result.extend(sorted(
+            ['p', p["player_id"], p["armies_to_place"], p["score"]]
+            for p in self.players if self.is_alive(p["player_id"])))
+        # information hidden from players
         #if player is None:
         #    result.append(['food_start', self.food_start])
         #    for line in self.get_map_output():
@@ -612,12 +613,13 @@ class War(Game):
         if self.killed[player]:
             return False
         else:
-            result = False
-            for ship in self.players:
-                if ship["player_id"] == player and ship["current_hp"] > 0:
-                    result = True
-                    break
-            return result
+            return True
+#            result = False
+#            for ship in self.players:
+#                if ship["player_id"] == player and ship["current_hp"] > 0:
+#                    result = True
+#                    break
+#            return result
 
     def get_error(self, player):
         """ Returns the reason a player was killed
