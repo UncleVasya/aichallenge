@@ -34,6 +34,10 @@ class Wargame(Game):
         map_data = self.parse_map(map_text)
 
         self.turn = 0
+        self.min_income = 5	#FIXME
+        self.base_unit = 1000	#FIXME tell the player, maybe add to map
+        self.attack_casualty = 70
+        self.defense_casualty = 60
         self.num_players = map_data["players"]
         self.player_to_begin = randint(0, self.num_players)
 
@@ -324,8 +328,51 @@ class Wargame(Game):
         result = p1 + (range(0, self.player_to_begin))
         return result
 
-    def do_single_order(self, order):
-        return True
+    def attack (self, player, num, source, target):
+        defender_strength = self.territory[target]["armies"]
+        attacker_losses = defender_strength * self.attack_casualty / 100
+        defender_losses = num * self.defense_casualty / 100
+        defenders_remain = self.territory[target]["armies"] - defender_losses
+        attackers_remain = self.territory[source]["armies"] - attacker_losses
+        if defenders_remain < 1 and attackers_remain > 0:
+            self.territory[target]["armies"] = max (0, attackers_remain)
+            self.territory[source]["armies"] -= num
+            self.territory[target]["owner"] = player
+        elif defenders_remain > 0:
+            self.territory[target]["armies"] = defenders_remain
+            self.territory[source]["armies"] = max (0, attackers_remain)
+        else:
+            self.territory[target]["armies"] = 0
+            self.territory[source]["armies"] = 0
+
+    def transfer (self, player, num, source, target):
+        self.territory[source]["armies"] -= num
+        self.territory[target]["armies"] += num
+
+    def do_single_order(self, (player, action, num, source, target)):
+        valid = False
+        if action == "d":
+            if self.territory[target]["owner"] == player and num > 0:
+                valid = True
+                self.territory[target]["armies"] += num
+                self.players[player]["armies_to_place"] -= num
+        elif action == "a":
+            if self.territory[target]["owner"] != player and num > 0 and self.territory[source]["owner"] == player:
+                valid = True
+                self.attack (player, num, source, target)
+        elif action == "t":
+            if self.territory[target]["owner"] == player and self.territory[source]["owner"] == player and num > 0:
+                valid = True
+                self.transfer (player, num, source, target)
+        elif action == "m":
+            if num > 0:
+                if self.territory[source]["owner"] == player:
+                    valid = True
+                    if self.territory[target]["owner"] == player:
+                        self.transfer (player, num, source, target)
+                    else:
+                        self.attack (player, num, source, target)
+        return valid
 
     def process_next_order(self, player_index):
         """ Process one player order in which something actually happens
@@ -574,15 +621,34 @@ class Wargame(Game):
         if self.cutoff is None:
             self.cutoff = 'turn limit reached'
 
+    def count_territories(self, player_id):
+        result = 0
+        for t in self.territory:
+            if t["owner"] == player_id:
+                result += 1
+        return result
+
+    def add_army_income(self, player):
+        terri = self.count_territories(player["player_id"])
+        income = max(self.min_income, int(terri / 3))
+        player["armies_to_place"] += income * self.base_unit
+
+    def begin_player_turn(self, player):
+        player["processed_this_turn"] = False
+        player["finished_turn"] = False
+        player["finished_deployment"] = False
+        player["move_index"] = 0
+        self.add_army_income(player)
+
     def start_turn(self):
         """ Called by engine at the start of the turn """
         self.turn += 1
         self.orders = [[] for _ in range(self.num_players)]
+        for player in self.players:
+            self.begin_player_turn(player)
 
     def finish_turn(self):
         """ Called by engine at the end of the turn """
-        for player in self.players:
-            player["processed_this_turn"] = False
         self.do_orders()
 #        self.do_non_player_movement()
 #        self.do_collisions()
