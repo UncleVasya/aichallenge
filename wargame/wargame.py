@@ -220,37 +220,47 @@ class Wargame(Game):
                 invalid.append((line, 'incorrectly formatted order'))
                 continue
 
-            thrust, turn, fire = data[1:]
+            if data[1] == 'd':
+                action = 'd'
+                num = data[2]
+                source = -1
+                target = data[3]
+            else:
+                action, num, source, target = data[1:]
 
             # validate the data types
             try:
-                thrust = float(thrust)
+                num = int(num)
             except ValueError:
-                invalid.append((line, "thrust is not a float"))
+                invalid.append((line, "num to move is not an int"))
                 continue
 
             try:
-                turn = float(turn)
+                source = int(source)
             except ValueError:
-                invalid.append((line, "turn is not a float"))
+                invalid.append((line, "source is not an int"))
                 continue
 
             try:
-                tmp = bool(fire)  # I think this is non-sensical.
+                target = int(target)
             except ValueError:
-                invalid.append((line, "fire is not a boolean"))
+                invalid.append((line, "target is not an int"))
                 continue
 
-            if thrust < 0 or thrust > 1:
-                invalid.append((line,
-                                "thrust is smaller than 0 or greater than 1"))
+            if num < 1:
+                invalid.append((line, "num to move is smaller than 1"))
 
-            if turn < -1 or turn > 1:
-                invalid.append((line,
-                                "turn is smaller than -1 or greater than 1"))
+            if action == 'd' and source != -1:
+                invalid.append((line, "deploy source should be -1"))
+
+            if action != 'd' and source < 0:
+                invalid.append((line, "move source less than 0"))
+
+            if target < 0:
+                invalid.append((line, "order target less than 0"))
 
             # this order can be parsed
-            orders.append((player, thrust, turn, fire))
+            orders.append((player, action, num, source, target))
             valid.append(line)
 
         return orders, valid, ignored, invalid
