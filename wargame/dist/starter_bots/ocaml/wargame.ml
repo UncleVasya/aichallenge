@@ -171,8 +171,24 @@ let read gstate =
 
 (* Begin output section *)
 
-let issue_order (f1, f2, i) =
-   Printf.printf "o %f %f %d\n" f1 f2 i
+let issue_order_deploy num target =
+   Printf.printf "o d %d %d\n" num target
+;;
+
+let issue_order action num source target =
+   Printf.printf "o %s %d %d %d\n" action num source target
+;;
+
+let issue_order_move num source target =
+   issue_order "m" num source target
+;;
+
+let issue_order_attack num source target =
+   issue_order "a" num source target
+;;
+
+let issue_order_transfer num source target =
+   issue_order "t" num source target
 ;;
 
 (* Print go, newline, and flush buffer *)

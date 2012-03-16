@@ -2,10 +2,10 @@ let mybot_engine state =
    if state#turn = 0 then state#finish_turn ()
    else
     (
-      War.issue_order (0.05, -0.15, 1);
+      Wargame.issue_order_deploy 1 0;
       state#finish_turn ()
     )
 ;;
 
-War.loop mybot_engine;;
+Wargame.loop mybot_engine;;
 

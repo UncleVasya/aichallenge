@@ -251,7 +251,7 @@ class Wargame(Game):
                 invalid.append((line, "num to move is smaller than 1"))
 
             if action == 'd' and source != -1:
-                invalid.append((line, "deploy source should be -1"))
+                invalid.append((line, "deploy source is not -1 but should be"))
 
             if action != 'd' and source < 0:
                 invalid.append((line, "move source less than 0"))
@@ -275,7 +275,7 @@ class Wargame(Game):
         valid = []
         valid_orders = []
         seen_locations = set()
-        for line, (player, thrust, turn, fire) in zip(lines, orders):
+        for line, (player, action, num, source, target) in zip(lines, orders):
             ## validate orders
             #if loc in seen_locations:
             #    invalid.append((line,'duplicate order'))
@@ -296,7 +296,7 @@ class Wargame(Game):
             #    continue
 
             # this order is valid!
-            valid_orders.append((player, thrust, turn, fire))
+            valid_orders.append((player, action, num, source, target))
             valid.append(line)
             #seen_locations.add(loc)
 
@@ -306,7 +306,7 @@ class Wargame(Game):
         """ Execute player orders and handle conflicts
         """
         for orders in self.orders:
-            for player, thrust, turn, fire in orders:
+            for player, action, num, source, target in orders:
                 pass
 #                self.do_player(player, thrust, turn, fire)
 
