@@ -13,7 +13,7 @@ try:
 except ImportError:
     from sys import maxsize as maxint
 
-class War(Game):
+class Wargame(Game):
     def __init__(self, options=None):
         # setup options
         map_text = options['map']
