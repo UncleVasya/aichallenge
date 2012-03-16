@@ -36,6 +36,7 @@ class Wargame(Game):
         self.turn = 0
         self.min_income = 5	#FIXME
         self.base_unit = 1000	#FIXME tell the player, maybe add to map
+        self.neutral_id = 10000
         self.attack_casualty = 70
         self.defense_casualty = 60
         self.num_players = map_data["players"]
@@ -344,8 +345,8 @@ class Wargame(Game):
         else:
             self.territory[target]["armies"] = 0
             self.territory[source]["armies"] = 0
-            self.territory[target]["owner"] = 10000
-            self.territory[source]["owner"] = 10000
+            self.territory[target]["owner"] = self.neutral_id
+            self.territory[source]["owner"] = self.neutral_id
 
     def transfer (self, player, num, source, target):
         self.territory[source]["armies"] -= num
@@ -551,6 +552,7 @@ class Wargame(Game):
         result.append(['height', self.height])
         result.append(['turns', self.turns])
         result.append(['player_seed', self.player_seed])
+        result.append(['neutral_id', self.neutral_id])
         result.extend(sorted(
             ['t', t["territory_id"], t["group"], t["x"], t["y"], t["owner"], t["armies"]]
             for t in self.territory))

@@ -18,13 +18,13 @@ type game_setup =
    mutable player_seed : int;
    mutable turntime : int;
    mutable loadtime : int;
+   mutable neutral_id : int;
  }
 ;;
 
 type player =
  {
    p_id : int;
-   score : int;
    armies_to_place : int;
  }
 ;;
@@ -35,6 +35,7 @@ type territory =
    group : int;
    owner : int;
    armies : int;
+   mutable neighbors : territory list;
  }
 ;;
 
@@ -53,6 +54,20 @@ type game_state =
    mutable connections : connection list;
    mutable players : player list;
  }
+;;
+
+let rec connect territories = function
+ | [] -> ()
+ | c :: tail ->
+      let a = List.find (fun t -> t.t_id = c.connect_from) territories in
+      let b = List.find (fun t -> t.t_id = c.connect_to) territories in
+         a.neighbors <- b :: a.neighbors;
+         b.neighbors <- a :: b.neighbors;
+      connect territories tail
+;;
+
+let make_connections gstate =
+   connect gstate.territories gstate.connections
 ;;
 
 (* type order = (float * float * int);; *)
@@ -84,12 +99,12 @@ let add_connection gstate t1 t2 =
 ;;
 
 let add_territory gstate t1 t2 t3 t4 =
-   let t = {t_id = t1; group = t2; owner = t3; armies = t4} in
+   let t = {t_id = t1; group = t2; owner = t3; armies = t4; neighbors = []} in
       gstate.territories <- t :: gstate.territories
 ;;
 
-let add_player gstate t1 t2 t3 =
-   let p = {p_id = t1; score = t2; armies_to_place = t3} in
+let add_player gstate t1 t2 =
+   let p = {p_id = t1; armies_to_place = t2} in
       gstate.players <- p :: gstate.players
 ;;
 
@@ -101,13 +116,14 @@ let six_term gstate key t1 t2 t3 t4 t5 t6 =
 
 let three_term gstate key t1 t2 t3 =
    match key with
-    | "p" -> add_player gstate t1 t2 t3
+    | "p" -> add_player gstate t1 t3 (*FIXME redundant*)
     | _ -> ()
 ;;
 
 let two_term gstate key t1 t2 =
    match key with
     | "c" -> add_connection gstate t1 t2
+    | "p" -> add_player gstate t1 t2
     | _ -> ()
 ;;
 
@@ -120,6 +136,7 @@ let one_term gstate key value =
     | "player_seed" -> gstate.setup.player_seed <- value
     | "loadtime" -> gstate.setup.loadtime <- value
     | "turntime" -> gstate.setup.turntime <- value
+    | "neutral_id" -> gstate.setup.neutral_id <- value
     | _ -> ()
 ;;
 
@@ -141,7 +158,8 @@ let update gstate lines =
       if gstate.setup.turn = 0 then gstate
       else (clear_gstate gstate; gstate)
    in
-      List.iter (add_line cgstate) lines 
+      List.iter (add_line cgstate) lines;
+      make_connections cgstate
 ;;
 
 let read_lines () =
@@ -172,11 +190,11 @@ let read gstate =
 (* Begin output section *)
 
 let issue_order_deploy num target =
-   Printf.printf "o d %d %d\n" num target
+   Printf.printf "o d %d %d\n" num target.t_id
 ;;
 
 let issue_order action num source target =
-   Printf.printf "o %s %d %d %d\n" action num source target
+   Printf.printf "o %s %d %d %d\n" action num source.t_id target.t_id
 ;;
 
 let issue_order_move num source target =
@@ -204,6 +222,15 @@ class swrap state =
    method issue_order o = issue_order o
    method finish_turn () = finish_turn ()
    method turn = state.setup.turn
+   method my_id = state.setup.player_id
+   method myself = 
+      debug "searching for myself\n";
+      debug (Printf.sprintf "players = %d\n" (List.length state.players));
+      List.find (fun p -> 
+         debug (Printf.sprintf "p_id = %d, player = %d\n" p.p_id state.setup.player_id);
+         p.p_id = state.setup.player_id) state.players
+   method neutral_id = state.setup.neutral_id
+   method territories = state.territories
  end
 ;;
 
@@ -217,6 +244,7 @@ let loop engine =
       player_seed = -1;
       turntime = -1;
       loadtime = -1;
+      neutral_id = -1;
      }
   in
   let proto_gstate =
