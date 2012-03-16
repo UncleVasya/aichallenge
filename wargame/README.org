@@ -1,6 +1,9 @@
 Risk-like game prototype. It has barely been tested, and there is no
 visualizer yet. This document may itself be buggy and incomplete. Enjoy!
 
+The example-game script doesn't seem to like relative paths on my system, so
+you will probably have to put the absolute path in.
+
 Bot inputs:
 
 loadtime n
