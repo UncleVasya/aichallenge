@@ -352,14 +352,9 @@ class Wargame(Game):
         self.territory[source]["armies"] -= num
         self.territory[target]["armies"] += num
 
-    def do_single_order(self, (player, action, num, source, target)):
+    def do_move_phase_order(self, (player, action, num, source, target)):
         valid = False
-        if action == "d":
-            if self.territory[target]["owner"] == player and num > 0 and self.players[player]["armies_to_place"] > 0:
-                will_deploy = min (num, self.players[player]["armies_to_place"] - 1)
-                valid = True
-                self.territory[target]["armies"] += will_deploy
-                self.players[player]["armies_to_place"] -= will_deploy
+        if action == "d": pass
         elif action == "a":
             if self.territory[target]["owner"] != player and num > 0 and self.territory[source]["owner"] == player and self.territory[source]["armies"] > 1:
                 valid = True
@@ -393,7 +388,7 @@ class Wargame(Game):
                     done = True
                 else:
                     order = self.orders[player_index][player["move_index"]]
-                    valid = self.do_single_order(order)
+                    valid = self.do_move_phase_order(order)
                     player["move_index"] += 1
                     if valid:
                         done = True
@@ -405,10 +400,27 @@ class Wargame(Game):
                 result = True
         return result
 
+    def deployment_orders(self, player):
+        player_orders = self.orders[player["player_id"]]
+        limit = len(player_orders)
+        done = False
+        for order in player_orders:
+            if not done:
+                (player_id, action, num, source, target) = order
+                if action == "d":
+                    player["move_index"] += 1
+                    if self.territory[target]["owner"] == player_id and num > 0 and self.players[player_id]["armies_to_place"] > 0:
+                        will_deploy = min (num, self.players[player_id]["armies_to_place"] - 1)
+                        valid = True
+                        self.territory[target]["armies"] += will_deploy
+                        self.players[player_id]["armies_to_place"] -= will_deploy
+                else: done = True
+
     def do_orders(self):
         """ Execute player orders and handle conflicts
         """
-        count_order = 0
+        for player in self.players:
+            self.deployment_orders(player)
         self.update_move_sequence()
         sequence = self.get_move_sequence()
         while self.unprocessed_orders_remain():

@@ -10,12 +10,14 @@ let threat state territory =
 let most_threatened state =
    let _, result = List.fold_left
       (fun (prev_score, prev_t) t ->
-         let score = threat state t in
-         match prev_t with
-          | None -> (score, Some t)
-          | Some prev_t ->
-                  if score > prev_score then (score, Some t)
-                  else (prev_score, Some prev_t)
+         if not (t.Wargame.owner = state#my_id) then prev_score, prev_t
+         else
+            let score = threat state t in
+            match prev_t with
+             | None -> (score, Some t)
+             | Some prev_t ->
+                     if score > prev_score then (score, Some t)
+                     else (prev_score, Some prev_t)
       )
       (0, None) state#territories 
    in
@@ -25,12 +27,14 @@ let most_threatened state =
 let greatest_threat state territory =
    let _, result = List.fold_left
       (fun (prev_score, prev_t) t ->
-         let score = threat state t in
-         match prev_t with
-          | None -> (score, Some t)
-          | Some prev_t ->
-                  if score > prev_score then (score, Some t)
-                  else (prev_score, Some prev_t)
+         if t.Wargame.owner = state#my_id then prev_score, prev_t
+         else
+            let score = threat state t in
+            match prev_t with
+             | None -> (score, Some t)
+             | Some prev_t ->
+                     if score > prev_score then (score, Some t)
+                     else (prev_score, Some prev_t)
       )
       (0, None) territory.Wargame.neighbors
    in
@@ -55,12 +59,9 @@ let mybot_engine state =
    if state#turn = 0 then state#finish_turn ()
    else
     (
-      Wargame.debug "begin turn\n";
       let focus = most_threatened state in
-      Wargame.debug "found focus\n";
       begin match focus with | None -> () | Some focus ->
          let myself = state#myself in
-         Wargame.debug "found myself\n";
          let to_place = myself.Wargame.armies_to_place in
          Wargame.issue_order_deploy to_place focus;
          let target = greatest_threat state focus in

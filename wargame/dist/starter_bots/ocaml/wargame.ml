@@ -224,11 +224,7 @@ class swrap state =
    method turn = state.setup.turn
    method my_id = state.setup.player_id
    method myself = 
-      debug "searching for myself\n";
-      debug (Printf.sprintf "players = %d\n" (List.length state.players));
-      List.find (fun p -> 
-         debug (Printf.sprintf "p_id = %d, player = %d\n" p.p_id state.setup.player_id);
-         p.p_id = state.setup.player_id) state.players
+      List.find (fun p -> p.p_id = state.setup.player_id) state.players
    method neutral_id = state.setup.neutral_id
    method territories = state.territories
  end
