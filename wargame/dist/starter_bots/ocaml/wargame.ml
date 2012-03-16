@@ -93,9 +93,9 @@ let add_player gstate t1 t2 t3 =
       gstate.players <- p :: gstate.players
 ;;
 
-let four_term gstate key t1 t2 t3 t4 =
+let six_term gstate key t1 t2 t3 t4 t5 t6 =
    match key with
-    | "t" -> add_territory gstate t1 t2 t3 t4
+    | "t" -> add_territory gstate t1 t2 t5 t6
     | _ -> ()
 ;;
 
@@ -124,7 +124,7 @@ let one_term gstate key value =
 ;;
 
 let add_line gstate line =
-   sscanf_cps "%s %d %d %d %d" (four_term gstate)
+   sscanf_cps "%s %d %d %d %d %d %d" (six_term gstate)
      (
       sscanf_cps "%s %d %d %d" (three_term gstate)
         (
