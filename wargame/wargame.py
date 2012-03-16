@@ -35,6 +35,7 @@ class Wargame(Game):
 
         self.turn = 0
         self.num_players = map_data["players"]
+        self.player_to_begin = randint(0, self.num_players)
 
 #        self.asteroids = map_data["asteroids"]
 #        self.bullets = []
@@ -42,7 +43,8 @@ class Wargame(Game):
         self.players = []
         for count in range(0, self.num_players):
             self.players.append(dict(zip(
-                ["player_id", "armies_to_place"], [count, 0])))
+                ["player_id", "armies_to_place", "move_index", "finished_turn"],
+                 [count, 0, 0, False])))
         # used to cutoff games early
         self.cutoff = None
         self.cutoff_bot = None # Can be ant owner, FOOD or LAND
@@ -302,25 +304,63 @@ class Wargame(Game):
 
         return valid_orders, valid, ignored, invalid
 
+    def max_orders(self):
+        result = 0
+        for player_orders in self.orders:
+            if len(player_orders) > result:
+                result = len(player_orders)
+        return result
+
+    def update_move_sequence(self):
+        self.player_to_begin = self.player_to_begin + 1
+        if self.player_to_begin >= self.num_players:
+            self.player_to_begin = self.player_to_begin - self.num_players
+
+    def get_move_sequence(self):
+        """ Sequence for cycling through players so they all sometimes 
+            get to move first
+        """
+        p1 = range(self.player_to_begin, self.num_players)
+        result = p1 + (range(0, self.player_to_begin))
+        return result
+
+    def do_single_order(self, order):
+        return True
+
+    def process_next_order(self, player_index):
+        """ Process one player order in which something actually happens
+        """
+        player = self.players[player_index]
+        if not player["finished_turn"]:
+            done = False
+            while not done:
+                if len(self.orders[player_index]) <= player["move_index"]:
+                    player["finished_turn"] = True
+                    done = True
+                else:
+                    order = self.orders[player_index][player["move_index"]]
+                    valid = self.do_single_order(order)
+                    player["move_index"] += 1
+                    if valid:
+                        done = True
+
+    def unprocessed_orders_remain(self):
+        result = False
+        for player in self.players:
+            if player["finished_turn"] == False:
+                result = True
+        return result
+
     def do_orders(self):
         """ Execute player orders and handle conflicts
         """
-        for orders in self.orders:
-            for player, action, num, source, target in orders:
-                pass
-#                self.do_player(player, thrust, turn, fire)
-
-    def wrap(self, v, limit):
-        if v < 0:
-            return self.wrap(v + limit, limit)
-        elif v >= limit:
-            return self.wrap(v - limit, limit)
-        else: 
-            return v
-#    def wrap(self, x, y):
-#        wx = self.sub_wrap(x, self.width)
-#        wy = self.sub_wrap(y, self.height)
-#        return wx, wy
+        count_order = 0
+        self.update_move_sequence()
+        sequence = self.get_move_sequence()
+        while self.unprocessed_orders_remain():
+            for player_index in sequence:
+                self.process_next_order(player_index)
+        
     def do_player(self, player, thrust, turn, fire):
         ship = self.players[player]
         # TODO 0.5 is the ship's max thrust, should become a variable
