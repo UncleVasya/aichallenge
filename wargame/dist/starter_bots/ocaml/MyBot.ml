@@ -1,3 +1,11 @@
+(* Proposed starter logic:
+ * - let focus be the most threatened friendly territory
+ * - let target be the neighbor of focus with the largest army
+ * - deploy all new troops into focus
+ * - move all newly deployed troops into target
+ *)
+
+(* open Wargame;; *)
 
 let threat state territory =
    List.fold_left (fun acc t ->
@@ -40,20 +48,6 @@ let greatest_threat state territory =
    in
       result
 ;;
-
-(*
-let greatest_threat territory =
-   let _, result = List.fold_left
-      (fun (prev_score, prev_t) t ->
-         let score = threat t in
-            if score > prev_score then (score, t)
-            else (prev_score, prev_t)
-      )
-      (0, 0) territory.Wargame.neighbors
-   in
-      result
-;;
-*)
 
 let mybot_engine state =
    if state#turn = 0 then state#finish_turn ()

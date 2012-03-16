@@ -594,7 +594,7 @@ class Wargame(Game):
 
             Used by engine to determine players still in the game
         """
-        if self.killed[player]:
+        if self.killed[player] or self.count_territories(player) == 0:
             return False
         else:
             return True
