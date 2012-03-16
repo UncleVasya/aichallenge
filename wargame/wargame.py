@@ -42,7 +42,7 @@ class Wargame(Game):
         self.players = []
         for count in range(0, self.num_players):
             self.players.append(dict(zip(
-                ["player_id", "score", "armies_to_place"], [count, 0, 0])))
+                ["player_id", "armies_to_place"], [count, 0])))
         # used to cutoff games early
         self.cutoff = None
         self.cutoff_bot = None # Can be ant owner, FOOD or LAND
@@ -165,7 +165,7 @@ class Wargame(Game):
         """
         changes = []
         changes.extend(sorted(
-            ['p', p["player_id"], p["score"], p["armies_to_place"]]
+            ['p', p["player_id"], p["armies_to_place"]]
             for p in self.players if self.is_alive(p["player_id"])))
         changes.extend(sorted(
             ['c', c["a"], c["b"]]
@@ -213,7 +213,10 @@ class Wargame(Game):
             if data[0] != 'o':
                 invalid.append((line, 'unknown action'))
                 continue
-            if len(data) != 4:
+            if data[1] != 'a' and data [1] != 't' and data[1] != 'm' and data[1] != 'd':
+                invalid.append((line, 'unknown action'))
+                continue
+            if (data[1] == 'd' and len(data) != 4) or (data[1] != 'd' and len(data) != 5):
                 invalid.append((line, 'incorrectly formatted order'))
                 continue
 
@@ -589,7 +592,7 @@ class Wargame(Game):
             ['c', c["a"], c["b"]]
             for c in self.connection))
         result.extend(sorted(
-            ['p', p["player_id"], p["armies_to_place"], p["score"]]
+            ['p', p["player_id"], p["armies_to_place"]]
             for p in self.players if self.is_alive(p["player_id"])))
         # information hidden from players
         #if player is None:
