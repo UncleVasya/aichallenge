@@ -408,168 +408,6 @@ class Wargame(Game):
             for player_index in sequence:
                 self.process_next_order(player_index)
         
-    def do_player(self, player, thrust, turn, fire):
-        ship = self.players[player]
-        # TODO 0.5 is the ship's max thrust, should become a variable
-        real_thrust = 0.5 * float(thrust)
-        # TODO pi/16 is the ship's max turn rate, should become a variable
-        ship["heading"] += pi / 16 * float(turn)
-        tx = real_thrust * cos(ship["heading"])
-        ty = real_thrust * sin(ship["heading"])
-        current_speed = (ship["current_speed"][0] + tx,
-                         ship["current_speed"][1] + ty)
-        ship["current_speed"] = current_speed
-        ship["y"] += current_speed[1]
-        ship["x"] += current_speed[0]
-        ship["x"] = self.wrap(ship["x"], self.width)
-        ship["y"] = self.wrap(ship["y"], self.height)
-        ship["fire_when"] -= 1
-        # TODO this doesn't compute with the bool(fire) in parse_orders
-        if fire == "1" and ship["fire_when"] <= 0:
-            ship["fire_when"] = 10
-            impetus = 6
-            ihead = ship["heading"]
-            bullet_dx = impetus * cos(ihead)
-            bullet_dy = impetus * sin(ihead)
-            bullet_x_speed = ship["current_speed"][0] + bullet_dx
-            bullet_y_speed = ship["current_speed"][1] + bullet_dy
-            bullet_heading = atan(bullet_y_speed / bullet_x_speed)
-            bullet_speed = bullet_y_speed / sin(bullet_heading)
-            bullet = { "owner": player,
-                       "x": ship["x"],
-                       "y": ship["y"],
-                       "previous_x": ship["x"],
-                       "previous_y": ship["y"],
-                       "turns_to_live": 12,
-                       "heading": bullet_heading,
-                       # add ship's speed to bullet's speed?
-                       "speed": bullet_speed }
-            self.bullets.append(bullet)
-        ship["processed_this_turn"] = True
-
-    def do_non_player_movement(self):
-        bullets_to_remove = []
-        for asteroid in self.asteroids:
-            asteroid["previous_x"] = asteroid["x"]
-            asteroid["previous_y"] = asteroid["y"]
-            dx = asteroid["speed"] * cos(asteroid["heading"])
-            dy = asteroid["speed"] * sin(asteroid["heading"])
-            asteroid["x"] = self.wrap(asteroid["x"] + dx, self.width)
-            asteroid["y"] = self.wrap(asteroid["y"] + dy, self.height)
-        for bullet in self.bullets:
-            if bullet["turns_to_live"] <= 0:
-                bullets_to_remove.append(bullet)
-            else:
-                bullet["previous_x"] = bullet["x"]
-                bullet["previous_y"] = bullet["y"]
-                dx = bullet["speed"] * cos(bullet["heading"])
-                dy = bullet["speed"] * sin(bullet["heading"])
-                bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
-                bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
-                bullet["turns_to_live"] -= 1
-        # players can still move due to inertia even if they didn't give orders
-        for player in self.players:
-            if not player["processed_this_turn"]:
-                self.do_player(player["player_id"], 0, 0 ,0)
-        self.remove_bullets(bullets_to_remove)
-
-    def remove_bullets(self, bullets):
-        for bullet in bullets:
-            try:
-                self.bullets.remove(bullet)
-            except ValueError:
-                pass
-
-    def kill_ship(self, ship):
-        ship["current_hp"] = 0
-
-    def do_collisions(self):
-        asteroids_to_break = []
-        ships_to_kill = []
-        bullets_to_remove = []
-        for ship in self.players:  # should become self.ships
-            sx = ship["x"]
-            sy = ship["y"]
-            for asteroid in self.asteroids:
-                ax = asteroid["x"]
-                ay = asteroid["y"]
-                dx = sx - ax
-                dy = sy - ay
-                # TODO this doesn't work near the edges when the objects are
-                #      visually on opposite sides
-                # TODO distance nees its own function
-                distance = sqrt((dx * dx) + (dy * dy))
-                category = asteroid["category"]
-                asteroid_radius = (category + 1) * (category + 1)
-
-                ### hmmm, i think this is wrong..
-                #~ radius_to_check = 5  # ship's hit bubble = 5
-                #~ if asteroid_radius > radius_to_check:
-                    #~ radius_to_check = asteroid_radius
-                #~ if distance <= radius_to_check:
-                
-                ### instead, collide, when the bubbles touch!
-                ship_radius = 5  # ship's hit bubble = 5
-                if distance <= asteroid_radius + ship_radius:
-                    self.score[ship["player_id"]] -= 1
-                    ships_to_kill.append(ship)
-                    break
-            for bullet in self.bullets:
-                bx = bullet["x"]
-                by = bullet["y"]
-                dx = sx - bx
-                dy = sy - by
-                # TODO this doesn't work near the edges when the objects are
-                #      visually on opposite sides
-                # TODO distance nees its own function
-                distance = sqrt((dx * dx) + (dy * dy))
-                # TODO 5 is the ship's size, should become a variable
-                if distance <= 5:
-                    self.score[bullet["owner"]] += 1
-                    bullets_to_remove.append(bullet)
-                    ships_to_kill.append(ship)
-                    break
-        for asteroid in self.asteroids:
-            ax = asteroid["x"]
-            ay = asteroid["y"]
-            for bullet in self.bullets:
-                bx = bullet["x"]
-                by = bullet["y"]
-                dx = ax - bx
-                dy = ay - by
-                # TODO this doesn't work near the edges when the objects are
-                #      visually on opposite sides
-                # TODO distance nees its own function
-                distance = sqrt((dx * dx) + (dy * dy))
-                category = asteroid["category"]
-                # TODO should get its own function
-                asteroid_radius = (category + 1) * (category + 1)
-                if distance <= asteroid_radius:
-                    asteroids_to_break.append(asteroid)
-                    bullets_to_remove.append(bullet)
-                    break
-        self.remove_bullets(bullets_to_remove)
-        for ship in ships_to_kill:
-            self.kill_ship(ship)
-        for asteroid in asteroids_to_break:
-            category = asteroid["category"] - 1
-            # currently between 2 and 4 asteroids of category - 1 are spawned
-            for i in range(0, randrange(2,5)):
-                if category <= 0:
-                    break
-                x = asteroid["x"]
-                y = asteroid["y"]
-                heading = random() * 2 * pi
-                speed = random() * 2
-                self.asteroids.append({"category": category,
-                                       "x": x,
-                                       "y": y,
-                                       "heading": heading,
-                                       "speed": speed,
-                                       "previous_x": x,
-                                       "previous_y": y})
-            self.asteroids.remove(asteroid)
-
     def remaining_players(self):
         """ Return the players still alive """
         return [p for p in range(self.num_players) if self.is_alive(p)]
@@ -628,6 +466,11 @@ class Wargame(Game):
                 result += 1
         return result
 
+    def update_scores(self):
+        for player in self.players:
+            index = player["player_id"]
+            self.score[index] = self.count_territories(index)
+
     def add_army_income(self, player):
         terri = self.count_territories(player["player_id"])
         income = max(self.min_income, int(terri / 3))
@@ -663,6 +506,7 @@ class Wargame(Game):
                 self.score_history[i].extend([last_score]*(self.turn-score_len))
                 self.score_history[i].append(s)
         self.calc_significant_turns()
+        self.update_scores()
 
         ### append turn to replay
         self.replay_data.append( self.get_state_changes() )
