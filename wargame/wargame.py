@@ -344,6 +344,8 @@ class Wargame(Game):
         else:
             self.territory[target]["armies"] = 0
             self.territory[source]["armies"] = 0
+            self.territory[target]["owner"] = 10000
+            self.territory[source]["owner"] = 10000
 
     def transfer (self, player, num, source, target):
         self.territory[source]["armies"] -= num
@@ -352,26 +354,30 @@ class Wargame(Game):
     def do_single_order(self, (player, action, num, source, target)):
         valid = False
         if action == "d":
-            if self.territory[target]["owner"] == player and num > 0:
+            if self.territory[target]["owner"] == player and num > 0 and self.players[player]["armies_to_place"] > 0:
+                will_deploy = min (num, self.players[player]["armies_to_place"] - 1)
                 valid = True
-                self.territory[target]["armies"] += num
-                self.players[player]["armies_to_place"] -= num
+                self.territory[target]["armies"] += will_deploy
+                self.players[player]["armies_to_place"] -= will_deploy
         elif action == "a":
-            if self.territory[target]["owner"] != player and num > 0 and self.territory[source]["owner"] == player:
+            if self.territory[target]["owner"] != player and num > 0 and self.territory[source]["owner"] == player and self.territory[source]["armies"] > 1:
                 valid = True
+                will_send = min (num, (self.territory[source]["armies"] - 1))
                 self.attack (player, num, source, target)
         elif action == "t":
-            if self.territory[target]["owner"] == player and self.territory[source]["owner"] == player and num > 0:
+            if self.territory[target]["owner"] == player and self.territory[source]["owner"] == player and num > 0 and self.territory[source]["armies"] > 1:
                 valid = True
+                will_send = min (num, (self.territory[source]["armies"] - 1))
                 self.transfer (player, num, source, target)
         elif action == "m":
-            if num > 0:
+            if num > 0 and self.territory[source]["armies"] > 1:
                 if self.territory[source]["owner"] == player:
                     valid = True
+                    will_send = min (num, (self.territory[source]["armies"] - 1))
                     if self.territory[target]["owner"] == player:
-                        self.transfer (player, num, source, target)
+                        self.transfer (player, will_send, source, target)
                     else:
-                        self.attack (player, num, source, target)
+                        self.attack (player, will_send, source, target)
         return valid
 
     def process_next_order(self, player_index):
