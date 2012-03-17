@@ -334,7 +334,7 @@ class Wargame(Game):
         attacker_losses = defender_strength * self.attack_casualty / 100
         defender_losses = num * self.defense_casualty / 100
         defenders_remain = self.territory[target]["armies"] - defender_losses
-        attackers_remain = self.territory[source]["armies"] - attacker_losses
+        attackers_remain = num - attacker_losses
         if defenders_remain < 1 and attackers_remain > 0:
             self.territory[target]["armies"] = max (0, attackers_remain)
             self.territory[source]["armies"] -= num

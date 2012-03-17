@@ -77,7 +77,7 @@
 				var index = frame[i][1];
 				if (frame[i][0] == 't'){
 					index = frame[i][5];
-					img = ""
+					img = frame[i][1] + ":"
 					if (index > 7)
 						{index = 8;
 						img += "n:"}
