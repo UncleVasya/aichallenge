@@ -77,6 +77,8 @@
 				var index = frame[i][1];
 				if (frame[i][0] == 't'){
 					index = frame[i][5];
+					if (index > 7)
+						index = 8;
 					V.fillStyle = color[index]
 					V.strokeStyle = 'white'}
 				img = frame[i][6]
