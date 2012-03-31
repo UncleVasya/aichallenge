@@ -36,7 +36,7 @@ type body =
 type ship =
  {
    owner : int;
-   p_body : body;
+   s_body : body;
    x_speed : float;
    y_speed : float;
  }
@@ -52,7 +52,7 @@ type game_state =
  }
 ;;
 
-type order = (float * float * int);;
+type order = (int * float * float * int);;
 
 (* Begin input processing stuff *)
 
@@ -97,7 +97,7 @@ let add_bullet gstate t1 t2 t3 t4 t5 =
 
 let add_ship gstate t1 t2 t3 t4 t5 t6 t7 =
    let b = new_body t1 t2 t3 t4 0.0 in
-   let s = {owner = t7; p_body = b; x_speed = t5; y_speed = t6} in
+   let s = {owner = t7; s_body = b; x_speed = t5; y_speed = t6} in
       gstate.ships <- s :: gstate.ships
 ;;
 
@@ -171,8 +171,8 @@ let read gstate =
 
 (* Begin output section *)
 
-let issue_order (f1, f2, i) =
-   Printf.printf "o %f %f %d\n" f1 f2 i
+let issue_order (target, f1, f2, i) =
+   Printf.printf "o %d %f %f %d\n" target f1 f2 i
 ;;
 
 (* Print go, newline, and flush buffer *)
@@ -186,6 +186,8 @@ class swrap state =
    method get_state = state
    method set_state v = state <- v
    method issue_order o = issue_order o
+   method get_ships = state.ships
+   method my_id = state.setup.player_id
    method finish_turn () = finish_turn ()
    method turn = state.setup.turn
  end

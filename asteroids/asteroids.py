@@ -152,6 +152,7 @@ class Asteroids(Game):
                                 "previous_x": x,
                                 "previous_y": y,
                                 "fire_when": 0,
+                                "is_alive": True,
                                 "processed_this_turn": False})
 
         return {
@@ -182,7 +183,7 @@ class Asteroids(Game):
         changes.extend(sorted(
             ['s', s["ship_id"], s["x"], s["y"], s["heading"],
                   s["current_speed"][0], s["current_speed"][1], s["owner"]]
-            for s in self.ships if self.is_alive(s["ship_id"])))
+            for s in self.ships if s["is_alive"] ))
         changes.extend(sorted(
             ["a", a["category"], a["x"], a["y"], a["heading"], a["speed"]]
             for a in self.asteroids))
@@ -220,13 +221,20 @@ class Asteroids(Game):
             if data[0] != 'o':
                 invalid.append((line, 'unknown action'))
                 continue
-            if len(data) != 4:
+            if len(data) != 5:
                 invalid.append((line, 'incorrectly formatted order'))
                 continue
 
-            thrust, turn, fire = data[1:]
+            target, thrust, turn, fire = data[1:]
 
             # validate the data types
+
+            try:
+                target = int(target)
+            except ValueError:
+                invalid.append((line, "target is not an int"))
+                continue
+
             try:
                 thrust = float(thrust)
             except ValueError:
@@ -254,7 +262,7 @@ class Asteroids(Game):
                                 "turn is smaller than -1 or greater than 1"))
 
             # this order can be parsed
-            orders.append((player, thrust, turn, fire))
+            orders.append((player, target, thrust, turn, fire))
             valid.append(line)
 
         return orders, valid, ignored, invalid
@@ -269,7 +277,7 @@ class Asteroids(Game):
         valid = []
         valid_orders = []
         seen_locations = set()
-        for line, (player, thrust, turn, fire) in zip(lines, orders):
+        for line, (player, target, thrust, turn, fire) in zip(lines, orders):
             ## validate orders
             #if loc in seen_locations:
             #    invalid.append((line,'duplicate order'))
@@ -290,7 +298,7 @@ class Asteroids(Game):
             #    continue
 
             # this order is valid!
-            valid_orders.append((player, thrust, turn, fire))
+            valid_orders.append((player, target, thrust, turn, fire))
             valid.append(line)
             #seen_locations.add(loc)
 
@@ -300,8 +308,8 @@ class Asteroids(Game):
         """ Execute player orders and handle conflicts
         """
         for orders in self.orders:
-            for player, thrust, turn, fire in orders:
-                self.do_ship(player, thrust, turn, fire, step_count)
+            for player, target, thrust, turn, fire in orders:
+                self.do_ship(player, target, thrust, turn, fire, step_count)
 
     def wrap(self, v, limit):
         if v < 0:
@@ -314,8 +322,9 @@ class Asteroids(Game):
 #        wx = self.sub_wrap(x, self.width)
 #        wy = self.sub_wrap(y, self.height)
 #        return wx, wy
-    def do_ship(self, ship, thrust, turn, fire, step_count):
-        ship = self.ships[ship]
+    def do_ship(self, player, ship, thrust, turn, fire, step_count):
+      ship = self.ships[ship]
+      if ship["owner"] == player:
         # TODO 0.5 is the ship's max thrust, should become a variable
         real_thrust = self.m_thrust * float(thrust)
         # TODO pi/16 is the ship's max turn rate, should become a variable
@@ -401,7 +410,7 @@ class Asteroids(Game):
         # players can still move due to inertia even if they didn't give orders
         for ship in self.ships:
             if not ship["processed_this_turn"]:
-                self.do_ship(ship["ship_id"], 0, 0 ,0, step_count)
+                self.do_ship(ship["owner"], ship["ship_id"], 0, 0 ,0, step_count)
         self.remove_bullets(bullets_to_remove)
 
     def remove_bullets(self, bullets):
@@ -412,6 +421,7 @@ class Asteroids(Game):
                 pass
 
     def kill_ship(self, ship):
+        ship["is_alive"] = False
         ship["current_hp"] = 0
 
     def do_collisions(self):

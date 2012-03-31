@@ -77,6 +77,8 @@
 				var index = frame[i][1];
 				if (frame[i][0] == 'a')
 					index = 8;
+				if (frame[i][0] == 's')
+					index = frame[i][7];
 				V.fillStyle = color[index]
 				V.strokeStyle = color[index]
 				img = frame[i][0] + frame[i][1]
