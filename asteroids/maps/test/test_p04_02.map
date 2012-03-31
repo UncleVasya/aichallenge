@@ -4,7 +4,7 @@
 width 512
 height 512
 players 4
-# s player-id x y heading speed
+# s ship_id x y heading speed owner
 s 0  63.0  63.0 0.78540 2.0 0
 s 1  447.0  63.0 2.35619 2.0 1
 s 2  447.0 447.0 3.92699 2.0 2
