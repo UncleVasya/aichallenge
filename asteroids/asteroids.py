@@ -30,7 +30,9 @@ class Asteroids(Game):
         self.cutoff_turn = options.get('cutoff_turn', 150)
 
         self.scenario = options.get('scenario', False)
-
+        self.turn_steps = 10
+        self.m_thrust = 0.5 / self.turn_steps
+        self.m_turn = (pi / 16) / self.turn_steps
         map_data = self.parse_map(map_text)
 
         self.turn = 0
@@ -288,12 +290,12 @@ class Asteroids(Game):
 
         return valid_orders, valid, ignored, invalid
 
-    def do_orders(self):
+    def do_orders(self, step_count):
         """ Execute player orders and handle conflicts
         """
         for orders in self.orders:
             for player, thrust, turn, fire in orders:
-                self.do_player(player, thrust, turn, fire)
+                self.do_player(player, thrust, turn, fire, step_count)
 
     def wrap(self, v, limit):
         if v < 0:
@@ -306,80 +308,94 @@ class Asteroids(Game):
 #        wx = self.sub_wrap(x, self.width)
 #        wy = self.sub_wrap(y, self.height)
 #        return wx, wy
-    def do_player(self, player, thrust, turn, fire):
+    def do_player(self, player, thrust, turn, fire, step_count):
         ship = self.players[player]
         # TODO 0.5 is the ship's max thrust, should become a variable
-        real_thrust = 0.5 * float(thrust)
+        real_thrust = self.m_thrust * float(thrust)
         # TODO pi/16 is the ship's max turn rate, should become a variable
-        ship["heading"] += pi / 16 * float(turn)
-        tx = real_thrust * cos(ship["heading"])
-        ty = real_thrust * sin(ship["heading"])
+        ship["heading"] += self.m_turn * float(turn)
+        tx = real_thrust * cos(ship["heading"]) #/ self.turn_steps
+        ty = real_thrust * sin(ship["heading"]) #/ self.turn_steps
         current_speed = (ship["current_speed"][0] + tx,
                          ship["current_speed"][1] + ty)
         ship["current_speed"] = current_speed
-        ship["y"] += current_speed[1]
-        ship["x"] += current_speed[0]
+        ship["y"] += (current_speed[1] / self.turn_steps)
+        ship["x"] += (current_speed[0] / self.turn_steps)
         ship["x"] = self.wrap(ship["x"], self.width)
         ship["y"] = self.wrap(ship["y"], self.height)
-        ship["fire_when"] -= 1
-        # TODO this doesn't compute with the bool(fire) in parse_orders
-        if fire == "1" and ship["fire_when"] <= 0:
-            ship["fire_when"] = 10
-            impetus = 6
-            ihead = ship["heading"]
-            bullet_dx = impetus * cos(ihead)
-            bullet_dy = impetus * sin(ihead)
-            bullet_x_speed = ship["current_speed"][0] + bullet_dx
-            bullet_y_speed = ship["current_speed"][1] + bullet_dy
-            try:
-                bullet_heading = atan(bullet_y_speed / bullet_x_speed)
-            except:
-                if bullet_y_speed < 0:
-                    bullet_heading = (-pi) / 2
-                elif bullet_y_speed > 0:
-                    bullet_heading = pi / 2
-                else:
-                    bullet_heading = 0
-            try:
-                bullet_speed = bullet_y_speed / sin(bullet_heading)
-            except:
-                bullet_speed = bullet_y_speed
-            bullet = { "owner": player,
-                       "x": ship["x"],
-                       "y": ship["y"],
-                       "previous_x": ship["x"],
-                       "previous_y": ship["y"],
-                       "turns_to_live": 12,
-                       "heading": bullet_heading,
-                       # add ship's speed to bullet's speed?
-                       "speed": bullet_speed }
-            self.bullets.append(bullet)
+        if step_count == 0:
+            ship["fire_when"] -= 1
+            # TODO this doesn't compute with the bool(fire) in parse_orders
+            if fire == "1" and ship["fire_when"] <= 0:
+                ship["fire_when"] = 10
+                impetus = 6
+                ihead = ship["heading"]
+                bullet_dx = impetus * cos(ihead)
+                bullet_dy = impetus * sin(ihead)
+                bullet_x_speed = ship["current_speed"][0] + bullet_dx
+                bullet_y_speed = ship["current_speed"][1] + bullet_dy
+                try:
+                    bullet_heading = atan(bullet_y_speed / bullet_x_speed)
+                except:
+                    if bullet_y_speed < 0:
+                        bullet_heading = (-pi) / 2
+                    elif bullet_y_speed > 0:
+                        bullet_heading = pi / 2
+                    else:
+                        bullet_heading = 0
+                try:
+                    bullet_speed = bullet_y_speed / sin(bullet_heading)
+                except:
+                    bullet_speed = bullet_y_speed
+                bullet = { "owner": player,
+                           "x": ship["x"],
+                           "y": ship["y"],
+                           "previous_x": ship["x"],
+                           "previous_y": ship["y"],
+                           "turns_to_live": 12,
+                           "heading": bullet_heading,
+                           # add ship's speed to bullet's speed?
+                           "speed": bullet_speed }
+                for count in range(0, self.turn_steps):
+                    self.update_body(bullet)
+                self.bullets.append(bullet)
         ship["processed_this_turn"] = True
 
-    def do_non_player_movement(self):
+    def update_body(self, body):
+        body["previous_x"] = body["x"]
+        body["previous_y"] = body["y"]
+        dx = body["speed"] * cos(body["heading"]) / self.turn_steps
+        dy = body["speed"] * sin(body["heading"]) / self.turn_steps
+        body["x"] = self.wrap(body["x"] + dx, self.width)
+        body["y"] = self.wrap(body["y"] + dy, self.height)
+
+    def do_non_player_movement(self, step_count):
         bullets_to_remove = []
         for asteroid in self.asteroids:
-            asteroid["previous_x"] = asteroid["x"]
-            asteroid["previous_y"] = asteroid["y"]
-            dx = asteroid["speed"] * cos(asteroid["heading"])
-            dy = asteroid["speed"] * sin(asteroid["heading"])
-            asteroid["x"] = self.wrap(asteroid["x"] + dx, self.width)
-            asteroid["y"] = self.wrap(asteroid["y"] + dy, self.height)
+            self.update_body(asteroid)
+#            asteroid["previous_x"] = asteroid["x"]
+#            asteroid["previous_y"] = asteroid["y"]
+#            dx = asteroid["speed"] * cos(asteroid["heading"])
+#            dy = asteroid["speed"] * sin(asteroid["heading"])
+#            asteroid["x"] = self.wrap(asteroid["x"] + dx, self.width)
+#            asteroid["y"] = self.wrap(asteroid["y"] + dy, self.height)
         for bullet in self.bullets:
             if bullet["turns_to_live"] <= 0:
                 bullets_to_remove.append(bullet)
             else:
-                bullet["previous_x"] = bullet["x"]
-                bullet["previous_y"] = bullet["y"]
-                dx = bullet["speed"] * cos(bullet["heading"])
-                dy = bullet["speed"] * sin(bullet["heading"])
-                bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
-                bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
-                bullet["turns_to_live"] -= 1
+                self.update_body(bullet)
+                if step_count == 0:
+                    bullet["turns_to_live"] -= 1
+#                bullet["previous_x"] = bullet["x"]
+#                bullet["previous_y"] = bullet["y"]
+#                dx = bullet["speed"] * cos(bullet["heading"])
+#                dy = bullet["speed"] * sin(bullet["heading"])
+#                bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
+#                bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
         # players can still move due to inertia even if they didn't give orders
         for player in self.players:
             if not player["processed_this_turn"]:
-                self.do_player(player["player_id"], 0, 0 ,0)
+                self.do_player(player["player_id"], 0, 0 ,0, step_count)
         self.remove_bullets(bullets_to_remove)
 
     def remove_bullets(self, bullets):
@@ -535,13 +551,22 @@ class Asteroids(Game):
         self.turn += 1
         self.orders = [[] for _ in range(self.num_players)]
 
+    def update_game_state(self):
+        for count in range(0, self.turn_steps):
+            for player in self.players:
+                player["processed_this_turn"] = False
+            self.do_orders(count)
+            self.do_non_player_movement(count)
+            self.do_collisions()
+
     def finish_turn(self):
         """ Called by engine at the end of the turn """
-        for player in self.players:
-            player["processed_this_turn"] = False
-        self.do_orders()
-        self.do_non_player_movement()
-        self.do_collisions()
+#        for player in self.players:
+#            player["processed_this_turn"] = False
+#        self.do_orders()
+#        self.do_non_player_movement()
+#        self.do_collisions()
+        self.update_game_state()
         # record score in score history
         for i, s in enumerate(self.score):
             if self.is_alive(i):
