@@ -429,6 +429,7 @@ class Asteroids(Game):
         ships_to_kill = []
         bullets_to_remove = []
         for ship in self.ships:  # has become self.ships
+          if ship["is_alive"]:
             sx = ship["x"]
             sy = ship["y"]
             for asteroid in self.asteroids:
