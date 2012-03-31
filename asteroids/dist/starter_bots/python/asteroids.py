@@ -14,6 +14,10 @@ class Asteroids():
         self.width = None
         self.height = None
         self.player_id = None
+        self.turn_steps = None
+        self.m_thrust = None
+        self.m_turn = None
+        self.ship_radius = None
         self.asteroids = []
         self.bullets = []
         self.ships = []
@@ -39,6 +43,14 @@ class Asteroids():
                     self.turntime = int(tokens[1])
                 elif key == 'loadtime':
                     self.loadtime = int(tokens[1])
+                elif key == 'turn_steps':
+                    self.turn_steps = int(tokens[1])
+                elif key == 'm_thrust':
+                    self.m_thrust = float(tokens[1])
+                elif key == 'm_turn':
+                    self.m_turn = float(tokens[1])
+                elif key == 'ship_radius':
+                    self.ship_radius = int(tokens[1])
 
     def update(self, data):
         # clear ant and food data
