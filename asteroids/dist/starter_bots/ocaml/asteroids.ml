@@ -33,8 +33,9 @@ type body =
  }
 ;;
 
-type player =
+type ship =
  {
+   owner : int;
    p_body : body;
    x_speed : float;
    y_speed : float;
@@ -47,7 +48,7 @@ type game_state =
    go_time : float;
    mutable asteroids : body list;
    mutable bullets : body list;
-   mutable players : player list;
+   mutable ships : ship list;
  }
 ;;
 
@@ -70,7 +71,7 @@ let clear_gstate gstate =
      (
       gstate.asteroids <- [];
       gstate.bullets <- [];
-      gstate.players <- [];
+      gstate.ships <- [];
      )
 ;;
 
@@ -94,10 +95,10 @@ let add_bullet gstate t1 t2 t3 t4 t5 =
       gstate.bullets <- b :: gstate.bullets
 ;;
 
-let add_player gstate t1 t2 t3 t4 t5 t6 =
+let add_ship gstate t1 t2 t3 t4 t5 t6 t7 =
    let b = new_body t1 t2 t3 t4 0.0 in
-   let p = {p_body = b; x_speed = t5; y_speed = t6} in
-      gstate.players <- p :: gstate.players
+   let s = {owner = t7; p_body = b; x_speed = t5; y_speed = t6} in
+      gstate.ships <- s :: gstate.ships
 ;;
 
 let five_term gstate key t1 t2 t3 t4 t5 =
@@ -107,9 +108,9 @@ let five_term gstate key t1 t2 t3 t4 t5 =
     | _ -> ()
 ;;
 
-let six_term gstate key t1 t2 t3 t4 t5 t6 =
+let seven_term gstate key t1 t2 t3 t4 t5 t6 t7 =
    match key with
-    | "p" -> add_player gstate t1 t2 t3 t4 t5 t6
+    | "s" -> add_ship gstate t1 t2 t3 t4 t5 t6 t7
     | _ -> ()
 ;;
 
@@ -126,7 +127,7 @@ let two_term gstate key value =
 ;;
 
 let add_line gstate line =
-   sscanf_cps "%s %d %f %f %f %f %f" (six_term gstate)
+   sscanf_cps "%s %d %f %f %f %f %f %d" (seven_term gstate)
      (
       sscanf_cps "%s %d %f %f %f %f" (five_term gstate)
         (
@@ -208,7 +209,7 @@ let loop engine =
       go_time = -1.0;
       asteroids = [];
       bullets = [];
-      players = []
+      ships = []
      }
   in
   let wrap = new swrap proto_gstate in

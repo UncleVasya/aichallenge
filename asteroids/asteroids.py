@@ -36,11 +36,11 @@ class Asteroids(Game):
         map_data = self.parse_map(map_text)
 
         self.turn = 0
-        self.num_players = len(map_data["players"])
+        self.num_players = (map_data["num_players"])
 
         self.asteroids = map_data["asteroids"]
         self.bullets = []
-        self.players = map_data["players"]
+        self.ships = map_data["ships"]
 
         # used to cutoff games early
         self.cutoff = None
@@ -95,8 +95,9 @@ class Asteroids(Game):
         """ Parse the map_text into a more friendly data structure """
         width = None
         height = None
+        num_players = 0
         asteroids = []
-        players = []
+        ships = []
 
         for line in map_text.split("\n"):
             line = line.strip()
@@ -108,6 +109,8 @@ class Asteroids(Game):
             key, value = line.split(" ", 1)
             key = key.lower()
 
+            if key == "players":
+                num_players = int(value)
             if key == "width":
                 width = int(value)
             elif key == "height":
@@ -126,16 +129,18 @@ class Asteroids(Game):
                                   "speed": speed,
                                   "previous_x": x,
                                   "previous_y": y})
-            elif key == 'p':
+            elif key == 's':
                 values = value.split()
                 id = int(values[0])
                 x = float(values[1])
                 y = float(values[2])
                 heading = float(values[3])
                 speed = float(values[4])
+                owner = int(values[5])
                 current_x = speed * cos(heading)
                 current_y = speed * sin(heading)
-                players.append({"player_id": id,
+                ships.append({"ship_id": id,
+                                "owner": owner,
                                 "x": x,
                                 "y": y,
                                 "heading": heading,
@@ -152,7 +157,8 @@ class Asteroids(Game):
         return {
             "size":      (width, height),
             "asteroids": asteroids,
-            "players":   players
+            "ships":   ships,
+            "num_players": num_players
         }
 
     def render_changes(self, player):
@@ -174,9 +180,9 @@ class Asteroids(Game):
         """
         changes = []
         changes.extend(sorted(
-            ['p', p["player_id"], p["x"], p["y"], p["heading"],
-                  p["current_speed"][0], p["current_speed"][1]]
-            for p in self.players if self.is_alive(p["player_id"])))
+            ['s', s["ship_id"], s["x"], s["y"], s["heading"],
+                  s["current_speed"][0], s["current_speed"][1], s["owner"]]
+            for s in self.ships if self.is_alive(s["ship_id"])))
         changes.extend(sorted(
             ["a", a["category"], a["x"], a["y"], a["heading"], a["speed"]]
             for a in self.asteroids))
@@ -295,7 +301,7 @@ class Asteroids(Game):
         """
         for orders in self.orders:
             for player, thrust, turn, fire in orders:
-                self.do_player(player, thrust, turn, fire, step_count)
+                self.do_ship(player, thrust, turn, fire, step_count)
 
     def wrap(self, v, limit):
         if v < 0:
@@ -308,8 +314,8 @@ class Asteroids(Game):
 #        wx = self.sub_wrap(x, self.width)
 #        wy = self.sub_wrap(y, self.height)
 #        return wx, wy
-    def do_player(self, player, thrust, turn, fire, step_count):
-        ship = self.players[player]
+    def do_ship(self, ship, thrust, turn, fire, step_count):
+        ship = self.ships[ship]
         # TODO 0.5 is the ship's max thrust, should become a variable
         real_thrust = self.m_thrust * float(thrust)
         # TODO pi/16 is the ship's max turn rate, should become a variable
@@ -347,7 +353,7 @@ class Asteroids(Game):
                     bullet_speed = bullet_y_speed / sin(bullet_heading)
                 except:
                     bullet_speed = bullet_y_speed
-                bullet = { "owner": player,
+                bullet = { "owner": ship["owner"],
                            "x": ship["x"],
                            "y": ship["y"],
                            "previous_x": ship["x"],
@@ -393,9 +399,9 @@ class Asteroids(Game):
 #                bullet["x"] = self.wrap (bullet["x"] + dx, self.width)
 #                bullet["y"] = self.wrap (bullet["y"] + dy, self.height)
         # players can still move due to inertia even if they didn't give orders
-        for player in self.players:
-            if not player["processed_this_turn"]:
-                self.do_player(player["player_id"], 0, 0 ,0, step_count)
+        for ship in self.ships:
+            if not ship["processed_this_turn"]:
+                self.do_ship(ship["ship_id"], 0, 0 ,0, step_count)
         self.remove_bullets(bullets_to_remove)
 
     def remove_bullets(self, bullets):
@@ -412,7 +418,7 @@ class Asteroids(Game):
         asteroids_to_break = []
         ships_to_kill = []
         bullets_to_remove = []
-        for ship in self.players:  # should become self.ships
+        for ship in self.ships:  # has become self.ships
             sx = ship["x"]
             sy = ship["y"]
             for asteroid in self.asteroids:
@@ -436,7 +442,7 @@ class Asteroids(Game):
                 ### instead, collide, when the bubbles touch!
                 ship_radius = 5  # ship's hit bubble = 5
                 if distance <= asteroid_radius + ship_radius:
-                    self.score[ship["player_id"]] -= 1
+                    self.score[ship["owner"]] -= 1
                     ships_to_kill.append(ship)
                     break
             for bullet in self.bullets:
@@ -553,19 +559,14 @@ class Asteroids(Game):
 
     def update_game_state(self):
         for count in range(0, self.turn_steps):
-            for player in self.players:
-                player["processed_this_turn"] = False
+            for ship in self.ships:
+                ship["processed_this_turn"] = False
             self.do_orders(count)
             self.do_non_player_movement(count)
             self.do_collisions()
 
     def finish_turn(self):
         """ Called by engine at the end of the turn """
-#        for player in self.players:
-#            player["processed_this_turn"] = False
-#        self.do_orders()
-#        self.do_non_player_movement()
-#        self.do_collisions()
         self.update_game_state()
         # record score in score history
         for i, s in enumerate(self.score):
@@ -636,15 +637,12 @@ class Asteroids(Game):
 
             Used by engine to determine players still in the game
         """
-        if self.killed[player]:
-            return False
-        else:
-            result = False
-            for ship in self.players:
-                if ship["player_id"] == player and ship["current_hp"] > 0:
-                    result = True
-                    break
-            return result
+        result = False
+        for ship in self.ships:
+            if ship["owner"] == player and ship["current_hp"] > 0:
+                result = True
+                break
+        return result
 
     def get_error(self, player):
         """ Returns the reason a player was killed
