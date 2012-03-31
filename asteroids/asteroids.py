@@ -31,8 +31,9 @@ class Asteroids(Game):
 
         self.scenario = options.get('scenario', False)
         self.turn_steps = 10
-        self.m_thrust = 0.5 / self.turn_steps
-        self.m_turn = (pi / 16) / self.turn_steps
+        self.m_thrust = 0.5
+        self.m_turn = (pi / 16)
+        self.ship_radius = 5
         map_data = self.parse_map(map_text)
 
         self.turn = 0
@@ -326,9 +327,9 @@ class Asteroids(Game):
       ship = self.ships[ship]
       if ship["owner"] == player:
         # TODO 0.5 is the ship's max thrust, should become a variable
-        real_thrust = self.m_thrust * float(thrust)
+        real_thrust = self.m_thrust * float(thrust) / self.turn_steps
         # TODO pi/16 is the ship's max turn rate, should become a variable
-        ship["heading"] += self.m_turn * float(turn)
+        ship["heading"] += self.m_turn * float(turn) / self.turn_steps
         tx = real_thrust * cos(ship["heading"]) #/ self.turn_steps
         ty = real_thrust * sin(ship["heading"]) #/ self.turn_steps
         current_speed = (ship["current_speed"][0] + tx,
@@ -451,7 +452,7 @@ class Asteroids(Game):
                 #~ if distance <= radius_to_check:
                 
                 ### instead, collide, when the bubbles touch!
-                ship_radius = 5  # ship's hit bubble = 5
+                ship_radius = self.ship_radius  # ship's hit bubble = 5
                 if distance <= asteroid_radius + ship_radius:
                     self.score[ship["owner"]] -= 1
                     ships_to_kill.append(ship)
@@ -628,6 +629,10 @@ class Asteroids(Game):
         result.append(['height', self.height])
         result.append(['turns', self.turns])
         result.append(['player_seed', self.player_seed])
+        result.append(['turn_steps', self.turn_steps])
+        result.append(['m_thrust', self.m_thrust])
+        result.append(['m_turn', self.m_turn])
+        result.append(['ship_radius', self.ship_radius])
         # information hidden from players
         #if player is None:
         #    result.append(['food_start', self.food_start])

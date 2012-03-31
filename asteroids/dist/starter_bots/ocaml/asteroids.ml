@@ -20,6 +20,10 @@ type game_setup =
    mutable player_seed : int;
    mutable turntime : int;
    mutable loadtime : int;
+   mutable turn_steps : int;
+   mutable m_thrust : float;
+   mutable m_turn : float;
+   mutable ship_radius : int;
  }
 ;;
 
@@ -123,6 +127,15 @@ let two_term gstate key value =
     | "player_seed" -> gstate.setup.player_seed <- value
     | "loadtime" -> gstate.setup.loadtime <- value
     | "turntime" -> gstate.setup.turntime <- value
+    | "turn_steps" -> gstate.setup.turn_steps <- value
+    | "ship_radius" -> gstate.setup.ship_radius <- value
+    | _ -> ()
+;;
+
+let two_term_float gstate key value =
+   match key with
+    | "m_thrust" -> gstate.setup.m_thrust <- value
+    | "m_turn" -> gstate.setup.m_turn <- value
     | _ -> ()
 ;;
 
@@ -131,7 +144,10 @@ let add_line gstate line =
      (
       sscanf_cps "%s %d %f %f %f %f" (five_term gstate)
         (
-         sscanf_cps "%s %d" (two_term gstate) (fun _ -> ())
+         sscanf_cps "%s %d" (two_term gstate) 
+           (
+            sscanf_cps "%s %f" (two_term_float gstate) (fun _ -> ())
+           )
         )
      )
      (uncomment line)
@@ -203,6 +219,10 @@ let loop engine =
       player_seed = -1;
       turntime = -1;
       loadtime = -1;
+      turn_steps = -1;
+      m_thrust = -1.;
+      m_turn = -1.;
+      ship_radius = 5;
      }
   in
   let proto_gstate =
