@@ -75,7 +75,7 @@
                         a = item[4]
                         end_arc = 0
                         begin_arc = ( Math.PI * 2 )
-                        r = (item[0]=="b" ? 2 :(item[0]=="s" ? 5 : (item[1]+1)*(item[1]+1)))
+                        r = (item[0]=="b" ? 1 :(item[0]=="s" ? 5 : (item[1]+1)*(item[1]+1)))
                         V.fillText(img, x,y)
                         V.beginPath();
                         V.arc(x,y, r*sx,begin_arc,end_arc,true);
