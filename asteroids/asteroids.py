@@ -472,12 +472,13 @@ class Asteroids(Game):
             for bullet in self.bullets:
                 bx = bullet["x"]
                 by = bullet["y"]
-                dx = sx - bx
-                dy = sy - by
+#                dx = sx - bx
+#                dy = sy - by
                 # TODO this doesn't work near the edges when the objects are
                 #      visually on opposite sides
                 # TODO distance nees its own function
-                distance = sqrt((dx * dx) + (dy * dy))
+#                distance = sqrt((dx * dx) + (dy * dy))
+                distance = self.distance(bx, by, sx, sy)
                 # TODO 5 is the ship's size, should become a variable
                 if distance <= 5:
                     self.score[bullet["owner"]] += 1
@@ -490,12 +491,13 @@ class Asteroids(Game):
             for bullet in self.bullets:
                 bx = bullet["x"]
                 by = bullet["y"]
-                dx = ax - bx
-                dy = ay - by
+#                dx = ax - bx
+#                dy = ay - by
                 # TODO this doesn't work near the edges when the objects are
                 #      visually on opposite sides
                 # TODO distance nees its own function
-                distance = sqrt((dx * dx) + (dy * dy))
+#                distance = sqrt((dx * dx) + (dy * dy))
+                distance = self.distance(ax, ay, bx, by)
                 category = asteroid["category"]
                 # TODO should get its own function
                 asteroid_radius = (category + 1) * (category + 1)
