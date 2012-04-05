@@ -667,11 +667,13 @@ class Asteroids(Game):
 
             Used by engine to determine players still in the game
         """
+        if self.killed[player]: return False
         result = False
         for ship in self.ships:
             if ship["owner"] == player and ship["current_hp"] > 0:
                 result = True
                 break
+        self.killed[player] = (self.killed[player] or (not result))
         return result
 
     def get_error(self, player):
