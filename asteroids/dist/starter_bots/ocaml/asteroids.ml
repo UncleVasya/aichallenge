@@ -1,261 +1,234 @@
-(* ocaml Asteroids starter package. Code has been borrowed from the ocaml
- * Ants starter package, which in turn borrwed from the PlanetWars package.
- *)
+(* asteroids.ml *)
+module Log = struct
+  let write channel level msg =
+		Printf.fprintf channel "[%-5s] %s\n%!" level msg
+  
+  let debug msg = write stderr "DEBUG" msg
+  and warn msg = write stderr "WARN" msg
+  and info msg = write stderr "INFO" msg
+  and error msg = write stderr "ERROR" msg
+end
 
-let out_chan = stderr (* open_out "mybot_err.log" *);;
+let get_time = Unix.gettimeofday
 
-let get_time () = Unix.gettimeofday ();;
+type game_setup = {
+  turns : int;
+  width : int;
+  height : int;
+  player_id : int;
+  player_seed : int;
+  turntime : int;
+  loadtime : int;
+  turn_steps : int;
+  m_thrust : float;
+  m_turn : float;
+  ship_radius : int;
+  speed_cap : float;
+}
 
-let debug s = 
-   output_string out_chan s; 
-   flush out_chan
-;;
+type asteroid = {
+  a_size : int;
+  a_x : float;
+  a_y : float;
+  a_heading : float;
+  a_speed : float;
+}
 
-type game_setup =
- {
-   mutable turn : int;
-   mutable width : int;
-   mutable height : int;
-   mutable player_id : int;
-   mutable player_seed : int;
-   mutable turntime : int;
-   mutable loadtime : int;
-   mutable turn_steps : int;
-   mutable m_thrust : float;
-   mutable m_turn : float;
-   mutable ship_radius : int;
- }
-;;
+type bullet = {
+  b_id : int;
+  b_x : float;
+  b_y : float;
+  b_heading : float;
+  b_speed : float;
+}
 
-type body =
- {
-   id : int;
-   x : float;
-   y : float;
-   heading : float;
-   speed : float;
- }
-;;
+type ship = {
+  s_id : int;
+  s_x : float;
+  s_y : float;
+  s_heading : float;
+  s_x_speed : float;
+  s_y_speed : float;
+  s_owner : int;
+}
 
-type ship =
- {
-   owner : int;
-   s_body : body;
-   x_speed : float;
-   y_speed : float;
- }
-;;
+type game_state = {
+  turn : int;
+  setup : game_setup;
+  go_time : float;
+  asteroids : asteroid list;
+  bullets : bullet list;
+  ships : ship list;
+}
 
-type game_state =
- {
-   setup : game_setup;
-   go_time : float;
-   mutable asteroids : body list;
-   mutable bullets : body list;
-   mutable ships : ship list;
- }
-;;
+let add_asteroid state size x y heading speed =
+  Log.debug (Printf.sprintf "add asteroid: %d %f %f %f %f" size x y heading speed);  
+  let a = { a_size = size; a_x = x; a_y = y; a_heading = heading; a_speed = speed } in
+  { state with asteroids = a :: state.asteroids }
 
-type order = (int * float * float * int);;
+let add_bullet state id x y heading speed =
+  Log.debug (Printf.sprintf "add bullet: %d %f %f %f %f" id x y heading speed);
+  let b = { b_id = id; b_x = x; b_y = y; b_heading = heading; b_speed = speed } in
+  { state with bullets = b :: state.bullets }
 
-(* Begin input processing stuff *)
-
-let uncomment s =
-  try String.sub s 0 (String.index s '#')
-  with Not_found -> s
-;;
-
-let sscanf_cps fmt cont_ok cont_fail s =
-  try Scanf.sscanf s fmt cont_ok
-  with _ -> cont_fail s
-;;
-
-let clear_gstate gstate =
-   if gstate.setup.turn < 1 then () else
-     (
-      gstate.asteroids <- [];
-      gstate.bullets <- [];
-      gstate.ships <- [];
-     )
-;;
-
-let new_body t1 t2 t3 t4 t5 =
- {
-   id = t1;
-   x = t2;
-   y = t3;
-   heading = t4;
-   speed = t5
- }
-;;
-
-let add_asteroid gstate t1 t2 t3 t4 t5 =
-   let a = new_body t1 t2 t3 t4 t5 in
-      gstate.asteroids <- a :: gstate.asteroids
-;;
-
-let add_bullet gstate t1 t2 t3 t4 t5 =
-   let b = new_body t1 t2 t3 t4 t5 in
-      gstate.bullets <- b :: gstate.bullets
-;;
-
-let add_ship gstate t1 t2 t3 t4 t5 t6 t7 =
-   let b = new_body t1 t2 t3 t4 0.0 in
-   let s = {owner = t7; s_body = b; x_speed = t5; y_speed = t6} in
-      gstate.ships <- s :: gstate.ships
-;;
-
-let five_term gstate key t1 t2 t3 t4 t5 =
-   match key with
-    | "a" -> add_asteroid gstate t1 t2 t3 t4 t5
-    | "b" -> add_bullet gstate t1 t2 t3 t4 t5
-    | _ -> ()
-;;
-
-let seven_term gstate key t1 t2 t3 t4 t5 t6 t7 =
-   match key with
-    | "s" -> add_ship gstate t1 t2 t3 t4 t5 t6 t7
-    | _ -> ()
-;;
-
-let two_term gstate key value =
-   match key with
-    | "turn" -> gstate.setup.turn <- value
-    | "width" -> gstate.setup.width <- value
-    | "height" -> gstate.setup.height <- value
-    | "player_id" -> gstate.setup.player_id <- value
-    | "player_seed" -> gstate.setup.player_seed <- value
-    | "loadtime" -> gstate.setup.loadtime <- value
-    | "turntime" -> gstate.setup.turntime <- value
-    | "turn_steps" -> gstate.setup.turn_steps <- value
-    | "ship_radius" -> gstate.setup.ship_radius <- value
-    | _ -> ()
-;;
-
-let two_term_float gstate key value =
-   match key with
-    | "m_thrust" -> gstate.setup.m_thrust <- value
-    | "m_turn" -> gstate.setup.m_turn <- value
-    | _ -> ()
-;;
-
-let add_line gstate line =
-   sscanf_cps "%s %d %f %f %f %f %f %d" (seven_term gstate)
-     (
-      sscanf_cps "%s %d %f %f %f %f" (five_term gstate)
-        (
-         sscanf_cps "%s %d" (two_term gstate) 
-           (
-            sscanf_cps "%s %f" (two_term_float gstate) (fun _ -> ())
-           )
-        )
-     )
-     (uncomment line)
-
-let update gstate lines =
-   let cgstate =
-      if gstate.setup.turn = 0 then gstate
-      else (clear_gstate gstate; gstate)
-   in
-      List.iter (add_line cgstate) lines 
-;;
-
-let read_lines () =
-  let rec read_loop acc =
-    let line = read_line () in
-    if String.length line >= 2 && String.sub line 0 2 = "go" 
-    || String.length line >= 3 && String.sub line 0 3 = "end"
-    || String.length line >= 5 && String.sub line 0 5 = "ready" then
-     (
-      List.rev acc
-     )
-    else
-      read_loop (line :: acc)
+let add_ship state id x y heading x_speed y_speed owner =
+  Log.debug (Printf.sprintf "add ship: %d %f %f %f %f %f %d"
+        id x y heading x_speed y_speed owner);
+  let s = {
+    s_id = id; s_x = x; s_y = y; s_heading = heading;
+    s_x_speed = x_speed; s_y_speed = y_speed;
+    s_owner = owner }
   in
-  try Some (read_loop []) with End_of_file -> None
-;;
+  { state with ships = s :: state.ships }
 
-let read gstate =
-  let ll = read_lines () in
-  let go_time = get_time () in
-  match ll with
-  | Some lines -> Some {(update gstate lines; gstate) with go_time = go_time}
-  | None -> None
-;;
+module Input = struct
+  exception End_of_block of string
+  exception Unknown_command of string
+  
+  let split sep s =
+    let list = ref [] in
+    let last = ref ((String.length s) - 1) in
+    begin try
+      while true do
+        let index = String.rindex_from s !last sep in
+        let token = String.sub s (index +1) (!last - index) in
+        list := token :: !list;
+        last := index - 1
+      done
+    with Not_found ->
+        let first = String.sub s 0 (!last +1) in
+        list := first :: !list
+    end;
+    !list
+  
+  let int_of_int64_string s =
+    try Int64.to_int (Int64.of_string s)
+    with e -> 
+       Log.warn "int_of_int64_string failed";
+       raise e
 
-(* End input section *)
+  let int_of_int32_string s =
+    try Int32.to_int (Int32.of_string s)
+    with e -> 
+      Log.warn "int_of_int32_string failed";
+      raise e
+  
+  let int_of_player_seed_string s =
+     try int_of_int64_string s
+     with _ ->
+       begin try int_of_int32_string s
+       with e ->
+          Log.warn "attempting int_of_string";
+          int_of_string s
+       end
 
-(* Begin output section *)
+  let read_setup channel =
+    let rec loop setup =
+      let line = input_line channel in
+      let tokens = split ' ' line in
+      match tokens with
+      | [""] -> loop setup
+      (* end of block *)
+      | "ready"::[] -> setup
+      (* game setup *)
+      | "turn"::"0"::[] -> loop setup
+      | "turns":: value::[] -> loop { setup with turns = int_of_string value } 
+      | "width":: value::[] -> loop { setup with width = int_of_string value } 
+      | "height":: value::[] -> loop { setup with height = int_of_string value } 
+      | "player_id":: value::[] -> loop { setup with player_id = int_of_string value } 
+(*      | "player_seed":: value::[] -> loop { setup with player_seed = int_of_int32_string value } *)
+      | "player_seed":: value::[] -> loop { setup with player_seed = int_of_player_seed_string value }
+      | "loadtime":: value::[] -> loop { setup with loadtime = int_of_string value } 
+      | "turntime":: value::[] -> loop { setup with turntime = int_of_string value }       
+      | "turn_steps":: value::[] -> loop { setup with turn_steps = int_of_string value } 
+      | "ship_radius":: value::[] -> loop { setup with ship_radius = int_of_string value }       
+      | "m_thrust":: value::[] -> loop { setup with m_thrust = float_of_string value } 
+      | "m_turn":: value::[] -> loop { setup with m_turn = float_of_string value } 
+      | "speed_cap":: value::[] -> loop { setup with speed_cap = float_of_string value } 
+      (* parse errors *)
+      | s :: _ when s.[0] = '#' -> Log.debug s; loop setup
+      | _ -> raise (Unknown_command line)
+    in
+    let setup = { turns = -1; width = -1; height = -1; player_id = -1;
+      player_seed = -1; turntime = -1; loadtime = -1; 
+      turn_steps = -1; m_thrust = 0.; m_turn = 0.; ship_radius = -1; speed_cap = 0.}
+    in
+    loop setup
+  
+  let read_state channel setup =
+    let rec loop state =
+      let line = input_line channel in
+      let tokens = split ' ' line in
+      match tokens with
+      | [""] -> loop state
+      (* end of block *)
+      | "go"::[] -> { state with go_time = get_time() }
+      | "end"::[] -> { state with go_time = get_time() }
+      (* game state *)
+      | "turn":: value::[] -> loop { state with turn = int_of_string value }
+      | "a":: a:: b:: c:: d:: e::[] ->
+        let size = int_of_string a
+        and x = float_of_string b
+        and y = float_of_string c
+        and heading = float_of_string d
+        and speed = float_of_string e in
+        loop (add_asteroid state size x y heading speed)
+      | "b":: a:: b:: c:: d:: e::[] ->
+        let id = int_of_string a
+        and x = float_of_string b
+        and y = float_of_string c
+        and heading = float_of_string d
+        and speed = float_of_string e in
+        loop (add_bullet state id x y heading speed)
+      | "s":: a:: b:: c:: d:: e:: f:: g::[] ->
+        let id = int_of_string a
+        and x = float_of_string b
+        and y = float_of_string c
+        and heading = float_of_string d
+        and x_speed = float_of_string e 
+        and y_speed = float_of_string f
+        and owner = int_of_string g in
+        loop (add_ship state id x y heading x_speed y_speed owner)
+      (* parse errors *)
+      | s :: _ when s.[0] = '#' -> Log.debug s; loop state
+      | _ -> raise (Unknown_command line)
+    in
+    let state = { setup = setup; turn = 0; go_time = 0.;
+      asteroids = []; bullets = []; ships = [] }
+    in
+    loop state
+end
 
-let issue_order (target, f1, f2, i) =
-   Printf.printf "o %d %f %f %d\n" target f1 f2 i
-;;
-
-(* Print go, newline, and flush buffer *)
-let finish_turn () = Printf.printf "go\n%!";;
-
-(* End output section *)
-
-class swrap state =
- object (self)
-   val mutable state = state
-   method get_state = state
-   method set_state v = state <- v
-   method issue_order o = issue_order o
-   method get_ships = state.ships
-   method my_id = state.setup.player_id
-   method finish_turn () = finish_turn ()
-   method turn = state.setup.turn
- end
-;;
+module Orders = struct
+  open Printf
+  
+  let order ship thrust turn fire =
+    let fire_int = if fire then 1 else 0 in 
+    Log.debug (sprintf "issue order: o %d %f %f %d" ship.s_id thrust turn fire_int);
+    printf "o %d %f %f %d\n" ship.s_id thrust turn fire_int
+  
+  let finish_turn () = printf "go\n%!"
+end
 
 let loop engine =
-  let proto_setup =
-     {
-      turn = -1;
-      width = -1;
-      height = -1;
-      player_id = -1;
-      player_seed = -1;
-      turntime = -1;
-      loadtime = -1;
-      turn_steps = -1;
-      m_thrust = -1.;
-      m_turn = -1.;
-      ship_radius = 5;
-     }
+  let init setup =
+    let state = { setup = setup; turn = 0; go_time = get_time();
+      asteroids = []; bullets = []; ships = [] }  in
+    engine state
+  in  
+  let rec play setup =
+    let state = Input.read_state stdin setup in
+    Log.info (Printf.sprintf "turn %d" state.turn);
+    begin try
+      engine state
+    with exc ->
+        Log.error (Printf.sprintf "Exception in turn %d : %s\n" state.turn (Printexc.to_string exc));
+    end;
+    Orders.finish_turn ();
+    Log.info (Printf.sprintf "end of turn %d, used %f seconds" state.turn (get_time() -. state.go_time));
+    play state.setup
   in
-  let proto_gstate =
-     {
-      setup = proto_setup;
-      go_time = -1.0;
-      asteroids = [];
-      bullets = [];
-      ships = []
-     }
-  in
-  let wrap = new swrap proto_gstate in
-  let rec take_turn i gstate =
-    match read gstate with
-    | Some state ->
-        begin try
-         (
-          wrap#set_state state;
-          engine wrap;
-          flush stdout;
-         )
-        with exc ->
-         (
-          debug (Printf.sprintf
-             "Exception in turn %d :\n" i);
-          debug (Printexc.to_string exc);
-          raise exc
-         )
-        end;
-        take_turn (i + 1) wrap#get_state
-    | None ->
-        ()
-  in
-     take_turn 0 proto_gstate
-;;
+  let setup = Input.read_setup stdin in
+  init setup;
+  play setup
 
