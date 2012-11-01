@@ -386,17 +386,17 @@ class Tron(Game):
                 self.killed_agents.append(value)
 
     def move_agents(self):
-        for agent in agents:
+        for agent in self.agents:
             row, col = agent["row"], agent["col"]
             heading = agent["heading"]
             dest = self.destination([row, col], HEADING[heading])
-            if self.map[dest[0]][dest[1]] == WATER:
+            if self.grid[dest[0]][dest[1]] == WATER:
                 self.killed_agents.append(dest)
             else: self.agent_destinations.append(dest)
 
     def mark_trail(self):
         for row, col in self.agent_destinations:
-            self.map[row][col] = WATER
+            self.grid[row][col] = WATER
 
     def remove_killed(self):
         remaining = []
@@ -408,7 +408,7 @@ class Tron(Game):
     def do_orders(self):
         """ Execute player orders and handle conflicts
         """
-        for player in range(self.num_player):
+        for player in range(self.num_players):
             if self.is_alive(player):
                 self.tron_orders(player)
         self.move_agents()
@@ -516,7 +516,7 @@ class Tron(Game):
                 self.score_history[i].extend([last_score]*(self.turn-score_len))
                 self.score_history[i].append(s)
         self.calc_significant_turns()
-        self.update_scores()
+#        self.update_scores()
 
         ### append turn to replay
         self.replay_data.append( self.get_state_changes() )
