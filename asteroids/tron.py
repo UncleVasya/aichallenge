@@ -101,9 +101,25 @@ class Tron(Game):
         self.agent_destination = []
         self.killed_agents = []
         self.agents = deepcopy(map_data["agents"])
-        
+        self.water = deepcopy(map_data["water"])
+
+        self.grid = self.make_grid()
         ### collect turns for the replay
         self.replay_data = []
+
+    def make_grid(self):
+        grid = []
+        for count_row in range(self.height):
+            new_row = []
+            for count_col in range(self.width):
+                new_row.append(MAP_OBJECT[LAND])
+            grid.append(new_row)
+        for (row, col) in self.water:
+            try:
+                grid[row][col] = MAP_OBJECT[WATER]
+            except IndexError:
+                raise Exception("row, col outside range ", row, col, self.water, grid)
+        return grid
 
     def player_has_agent(self, player, row, col):
         result = False
@@ -120,6 +136,7 @@ class Tron(Game):
         agents = []
         water = []
         num_players = None
+        count_row = 0
 
         for line in map_text.split("\n"):
             line = line.strip()
@@ -158,13 +175,13 @@ class Tron(Game):
                                     "Incorrect number of cols in row %s. "
                                     "Got %s, expected %s."
                                     %(row, len(value), width))
-                for col, c in enumerate(value):
+                for count_col, c in enumerate(value):
                     if c == MAP_OBJECT[WATER]:
-                        water.append((row,col))
+                        water.append((count_row, count_col))
                     elif c != MAP_OBJECT[LAND]:
                         raise Exception("map",
                                         "Invalid character in map: %s" % c)
-                row += 1
+                count_row += 1
         return {
             "size":      (width, height),
             "agents_per_player": agents_per_player,
@@ -548,7 +565,7 @@ class Tron(Game):
         result.extend(sorted(
             ['a', a["row"], a["col"], a["heading"], a["owner"]]
             for a in self.agents ))
-        for row, col in self.map_data["water"]:
+        for row, col in self.water:
             result.append(['w', row, col])
         # information hidden from players
         #if player is None:
