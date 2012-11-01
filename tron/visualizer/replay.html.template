@@ -47,6 +47,7 @@
 			nturns = replay_data["replaydata"]["data"].length
 			player = replay_data["replaydata"]["players"]
 			scores = replay_data["replaydata"]["scores"]
+			water = replay_data["replaydata"]["water"]
 			sx = 600 / width
 			sy = 600 / height
 			//~ for ( i in im ) {
@@ -72,6 +73,15 @@
 			}
 			info += "]"
 			V.fillText(info, 260,10)
+			for (w_index=0; w_index < water.length; w_index++) {
+				w = water[w_index]
+				row = w[0]
+				col = w[1]
+				x = col * sx
+				y = row * sy
+				V.fillStyle = 'white'
+				V.fillRect(x,y,sx,sy)
+			}
 			for (iter_frame=0;iter_frame<f;iter_frame++) {
 				frame = replay_data["replaydata"]["data"][iter_frame]
 				for (i in frame) {

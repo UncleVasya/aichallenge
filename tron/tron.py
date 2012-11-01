@@ -104,6 +104,7 @@ class Tron(Game):
         self.water = deepcopy(map_data["water"])
 
         self.grid = self.make_grid()
+#        raise Exception(self.grid)
         ### collect turns for the replay
         self.replay_data = []
 
@@ -118,7 +119,7 @@ class Tron(Game):
             try:
                 grid[row][col] = MAP_OBJECT[WATER]
             except IndexError:
-                raise Exception("row, col outside range ", row, col, self.water, grid)
+                raise Exception("row, col outside range ", row, col, self.water)
         return grid
 
     def player_has_agent(self, player, row, col):
@@ -390,13 +391,13 @@ class Tron(Game):
             row, col = agent["row"], agent["col"]
             heading = agent["heading"]
             dest = self.destination([row, col], HEADING[heading])
-            if self.grid[dest[0]][dest[1]] == WATER:
+            if self.grid[dest[0]][dest[1]] == MAP_OBJECT[WATER]:
                 self.killed_agents.append(dest)
             else: self.agent_destinations.append(dest)
 
     def mark_trail(self):
         for row, col in self.agent_destinations:
-            self.grid[row][col] = WATER
+            self.grid[row][col] = MAP_OBJECT[WATER]
 
     def remove_killed(self):
         remaining = []
@@ -463,6 +464,11 @@ class Tron(Game):
         
         ### append turn 0 to replay
         self.replay_data.append( self.get_state_changes() )
+        result = []
+#        for row, col in self.water:
+#            result.append(['w', row, col])
+#        result.append([]) # newline
+#        self.replay_data.append(result)
 
     def finish_game(self):
         """ Called by engine at the end of the game """
@@ -685,6 +691,7 @@ class Tron(Game):
         replay['ranking_turn'] = self.ranking_turn
         replay['cutoff'] =  self.cutoff
         
+        replay['water'] = self.water
         ### 
         replay['width'] = self.width
         replay['height'] = self.height
