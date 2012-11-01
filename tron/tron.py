@@ -385,7 +385,7 @@ class Tron(Game):
             else:
                 self.killed_agents.append(value)
 
-    def move_agents(self):
+    def pre_move_agents(self):
         for agent in self.agents:
             row, col = agent["row"], agent["col"]
             heading = agent["heading"]
@@ -405,16 +405,26 @@ class Tron(Game):
                 remaining.append(agent)
         self.agents = remaining
 
+    def update_agents(self):
+        for agent in self.agents:
+            row, col = agent["row"], agent["col"]
+            heading = agent["heading"]
+            dest_row, dest_col = self.destination([row, col], HEADING[heading])
+            agent["row"] = dest_row
+            agent["col"] = dest_col
+
     def do_orders(self):
         """ Execute player orders and handle conflicts
         """
         for player in range(self.num_players):
             if self.is_alive(player):
                 self.tron_orders(player)
-        self.move_agents()
+#            else: self.killed[player] == True
+        self.pre_move_agents()
         self.mark_trail()
         self.kill_overlap()
         self.remove_killed()
+        self.update_agents()
 
     def remaining_players(self):
         """ Return the players still alive """
@@ -432,7 +442,7 @@ class Tron(Game):
         if len(self.remaining_players()) < 1:
             self.cutoff = 'extermination'
             return True
-        if len(self.remaining_players()) == 1:
+        elif len(self.remaining_players()) == 1:
             self.cutoff = 'lone survivor'
             return True
         #if self.cutoff_turns >= self.cutoff_turn:
@@ -441,7 +451,7 @@ class Tron(Game):
         #    else:
         #        self.cutoff = 'ants not razing hills'
         #    return True
-        return False
+        else: return False
 
     def kill_player(self, player):
         """ Used by engine to signal that a player is out of the game """
@@ -678,5 +688,5 @@ class Tron(Game):
         ### 
         replay['width'] = self.width
         replay['height'] = self.height
-        replay['data'] = self.replay_data
+        replay['data'] = []#self.replay_data
         return replay
