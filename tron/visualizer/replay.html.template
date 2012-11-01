@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>Asteroids!!</title>
+	<title>TRON REVISITED</title>
 	<style type="text/css">
 		html { margin:0; padding:0; }
 		body { margin:0; padding:0; overflow:hidden; background-color:#444}
@@ -62,7 +62,6 @@
 		}
 		function draw_frame(f) {
 			clear()
-			frame = replay_data["replaydata"]["data"][f]
 			V.fillStyle = 'white'
 			V.strokeStyle = 'white'
 			info = "turn "+the_turn + "  ["
@@ -73,31 +72,38 @@
 			}
 			info += "]"
 			V.fillText(info, 260,10)
-			for (i in frame) {
-				var index = frame[i][1];
-				if (frame[i][0] == 'a')
-					index = 8;
-				V.fillStyle = color[index]
-				V.strokeStyle = color[index]
-				img = frame[i][0] + frame[i][1]
-				x = frame[i][2] * sx
-				y = frame[i][3] * sy
-				a = frame[i][4]
-				end_arc = (frame[i][0]=="p" ? (frame[i][4] - (Math.PI * 2 / 3)): 0 )
-				begin_arc = (frame[i][0]=="p" ? (frame[i][4] + (Math.PI * 2 / 3)): Math.PI * 2 )
+			for (iter_frame=0;iter_frame<f;iter_frame++) {
+				frame = replay_data["replaydata"]["data"][iter_frame]
+				for (i in frame) {
+					var index = frame[i][4];
+//					if (frame[i][0] == 'a')
+//						index = 8;
+					V.fillStyle = color[index]
+//					V.strokeStyle = color[index]
+//					V.fillStyle = 'white'
+//					V.strokeStyle = 'white'
+//					V.fillRect(10, 10, 10, 10)
+//					img = frame[i][0] + frame[i][1]
+					x = frame[i][2] * sx
+					y = frame[i][1] * sy
+//					a = frame[i][4]
+//					end_arc = (frame[i][0]=="p" ? (frame[i][4] - (Math.PI * 2 / 3)): 0 )
+//					begin_arc = (frame[i][0]=="p" ? (frame[i][4] + (Math.PI * 2 / 3)): Math.PI * 2 )
 	
-				r = (frame[i][0]=="b" ? 2 :(frame[i][0]=="p" ? 5 : (frame[i][1]+1)*(frame[i][1]+1)))
+//					r = (frame[i][0]=="b" ? 2 :(frame[i][0]=="p" ? 5 : (frame[i][1]+1)*(frame[i][1]+1)))
 				//~ V.rotate(r)
 				//~ V.translate(x,y)
-				V.fillText(img, x,y)
-				V.beginPath();
-				V.arc(x,y, r*sx,begin_arc,end_arc,true);
-				V.closePath();
-				V.stroke();
+//					V.fillText(img, x,y)
+//					V.beginPath();
+//					V.arc(x,y, r*sx,begin_arc,end_arc,true);
+//					V.closePath();
+					V.fillRect(x,y,sx,sy)
+//					V.stroke();
 				//~ V.translate(-x,-y)
 				//~ if ( im[img] && im[img].data )
 					//~ V.drawImage(im[img], x,y)
 				//~ V.rotate(-r)
+				}
 			}
 		}
         function stop() {

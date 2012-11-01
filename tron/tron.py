@@ -688,5 +688,5 @@ class Tron(Game):
         ### 
         replay['width'] = self.width
         replay['height'] = self.height
-        replay['data'] = []#self.replay_data
+        replay['data'] = self.replay_data
         return replay
