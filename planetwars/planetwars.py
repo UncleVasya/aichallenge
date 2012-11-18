@@ -281,7 +281,7 @@ class PlanetWars(Game):
 
         return valid_orders, valid, ignored, invalid
 
-    def tron_orders(self, player):
+    def planetwars_orders(self, player):
         """ Enacts orders for the Planet Wars game
         """
         player_orders = self.orders[player]
@@ -382,7 +382,7 @@ class PlanetWars(Game):
         """
         for player in range(self.num_players):
             if self.is_alive(player):
-                self.tron_orders(player)
+                self.planetwars_orders(player)
 #            else: self.killed[player] == True
         self.process_new_fleets()
         self.do_time_step()
