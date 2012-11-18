@@ -318,7 +318,7 @@ var Visualizer = {
 
         // draw move indicator
         if ( typeof frame != "undefined" ) {
-            var widthFactor = canvas.width / 200;
+            var widthFactor = canvas.width / this.moves.length;
             ctx.strokeStyle = "#666"
             ctx.fillStyle = "#666";
             ctx.beginPath();
@@ -583,7 +583,7 @@ var ParserUtils = {
 
 	var updateMove = function(evt) {
         var chart = $("#chart");
-        var move = 200 * (evt.pageX - chart.offset().left) / chart.width();
+        var move = Visualizer.moves.length * (evt.pageX - chart.offset().left) / chart.width();
         Visualizer.setFrame(move);
         Visualizer.drawFrame(Visualizer.frame);
         Visualizer.stop();

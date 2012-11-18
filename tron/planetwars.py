@@ -37,7 +37,6 @@ class PlanetWars(Game):
         self.fleets = []
         self.temp_fleets = {}
         
-        self.agents_per_player = 1 #map_data["agents_per_player"]
         self.player_to_begin = randint(0, self.num_players)
         # used to cutoff games early
         self.cutoff = None
@@ -51,7 +50,7 @@ class PlanetWars(Game):
         self.ranking_turn = 0
 
         # initialize scores
-        self.score = [self.agents_per_player]*self.num_players
+        self.score = [0]*self.num_players
         self.bonus = [0]*self.num_players
         self.score_history = [[s] for s in self.score]
 
@@ -449,17 +448,15 @@ class PlanetWars(Game):
 #        for player in self.players:
 #            self.begin_player_turn(player)
 
-#    def update_scores(self):
-#        """ Update the record of players' scores
-#            Proposed scoring for Tron: 
-#                score = friendly agents alive + opposing agents outlived
-#        """
+    def update_scores(self):
+        """ Update the record of players' scores
+        """
+        for p in range(self.num_players):
+            self.score[p] = self.num_ships_for_player(p)
 
     def finish_turn(self):
         """ Called by engine at the end of the turn """
         self.do_orders()
-#        self.do_non_player_movement()
-#        self.do_collisions()
         # record score in score history
         for i, s in enumerate(self.score):
             if self.is_alive(i):
@@ -471,7 +468,7 @@ class PlanetWars(Game):
                 self.score_history[i].extend([last_score]*(self.turn-score_len))
                 self.score_history[i].append(s)
         self.calc_significant_turns()
-#        self.update_scores()
+        self.update_scores()
 
         ### append turn to replay
         self.turn_strings.append(self.get_state_changes())
@@ -536,6 +533,10 @@ class PlanetWars(Game):
         """
         # return self.render_changes(player)
         return self.serialize_game_state(player+1)
+        
+    def num_ships_for_player(self, player):
+        return sum([p["num_ships"] for p in self.planets if p["owner"] == player+1]) + \
+            sum([f["num_ships"] for f in self.fleets if f["owner"] == player+1])
 
     def is_alive(self, player):
         """ Determine if player is still alive
@@ -545,10 +546,10 @@ class PlanetWars(Game):
         if self.killed[player]:
             return False
         for p in self.planets:
-            if p["owner"] == player:
+            if p["owner"] == player+1:
                 return True
         for f in self.fleets:
-            if f["owner"] == player:
+            if f["owner"] == player+1:
                 return True
         return False
 
