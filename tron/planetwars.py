@@ -74,7 +74,8 @@ class PlanetWars(Game):
 
 #        raise Exception(self.grid)
         ### collect turns for the replay
-        self.replay_data = []
+        self.replay_data = ""
+        self.turn_strings = []
 
     def parse_map(self, map_text):
         """ Parse the map_text into a more friendly data structure """
@@ -157,13 +158,38 @@ class PlanetWars(Game):
                   "\n" + "\n".join([self.serialize_fleet(f, pov) for f in self.fleets]) + "\n"
         return message.replace("\n\n", "\n")
   
+    # Turns a list of planets into a string in playback format. This is the initial
+    # game state part of a game playback string.
+    def planet_to_playback_format(self):
+        planet_strings = []
+        for p in self.planets:
+            planet_strings.append(str(p["x"]) + "," + str(p["y"]) + "," + \
+                str(p["owner"]) + "," + str(p["num_ships"]) + "," + \
+                str(p["growth_rate"]))
+        return ":".join(planet_strings)
+    
+    # Turns a list of fleets into a string in playback format. 
+    def fleets_to_playback_format(self):
+        fleet_strings = []
+        for p in self.fleets:
+            fleet_strings.append(str(p["owner"]) + "." + str(p["num_ships"]) + "." + \
+                str(p["source"]) + "." + str(p["destination"]) + "." + \
+                str(p["total_trip_length"]) + "." + str(p["turns_remaining"]))
+        return ",".join(fleet_strings)
+
+    # Represents the game state in frame format. Represents one frame.
+    def frame_representation(self):
+        planet_string = \
+            ",".join([str(p["owner"]) + "." + str(p["num_ships"]) for p in self.planets])
+        return planet_string + "," + self.fleets_to_playback_format()
+  
     def get_state_changes(self):
         """ Return a list of all transient objects on the map.
 
             Changes are sorted so that the same state will result in the same
             output.
         """
-        changes = []
+        changes = self.frame_representation()
 #        changes.extend(sorted(
 #            ['p', p["player_id"]]
 #            for p in self.players if self.is_alive(p["player_id"])))
@@ -392,7 +418,7 @@ class PlanetWars(Game):
         self.game_started = True
         
         ### append turn 0 to replay
-        self.replay_data.append( self.get_state_changes() )
+        self.replay_data = self.planet_to_playback_format() + "|"
         result = []
 #        for row, col in self.water:
 #            result.append(['w', row, col])
@@ -409,7 +435,7 @@ class PlanetWars(Game):
         self.calc_significant_turns()
         for i, s in enumerate(self.score):
             self.score_history[i].append(s)
-        self.replay_data.append( self.get_state_changes() )
+        self.replay_data += ":".join(self.turn_strings)
 
         # check if a rule change lengthens games needlessly
         if self.cutoff is None:
@@ -448,7 +474,7 @@ class PlanetWars(Game):
 #        self.update_scores()
 
         ### append turn to replay
-        self.replay_data.append( self.get_state_changes() )
+        self.turn_strings.append(self.get_state_changes())
 
     def calc_significant_turns(self):
         ranking_bots = [sorted(self.score, reverse=True).index(x) for x in self.score]

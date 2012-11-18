@@ -2,7 +2,7 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<title>TRON REVISITED</title>
+	<title>PlanetWars  revisited : visualizer</title>
 	<style type="text/css">
 		html { margin:0; padding:0; }
 		body { margin:0; padding:0; overflow:hidden; background-color:#444}
@@ -11,153 +11,55 @@
 	</style>
 </head>
 <body>
-<p>
-<center>
-<canvas width=600 height=600 id="C">
-	<script type="text/javascript">
-		replay_data = ## REPLAY PLACEHOLDER ##;
-		
-		//~ im = {
-			//~ "p0" : "visualizer/p0.png",
-			//~ "p1" : "visualizer/p1.png",
-			//~ "a0" : "visualizer/a0.png",
-			//~ "a1" : "visualizer/a1.png",
-			//~ "a2" : "visualizer/a2.png",
-			//~ "a3" : "visualizer/a3.png",
-			//~ "a4" : "visualizer/a2.png",
-			//~ "b0" : "visualizer/b0.png",
-			//~ "b1" : "visualizer/b1.png",
-		//~ }
-		C = document.getElementById('C')
-		V = C.getContext('2d');
-		the_turn = 0
-		var color = new Array(9);
-		color[0] = 'cyan';
-		color[1] = 'green';
-		color[2] = 'blue';
-		color[3] = 'yellow';
-		color[4] = 'red';
-		color[5] = 'magenta';
-		color[6] = 'darkgray';
-		color[7] = 'purple';
-		color[8] = 'white';
-		function init() {
-			width  = replay_data["replaydata"]["width"]
-			height = replay_data["replaydata"]["height"]
-			nturns = replay_data["replaydata"]["data"].length
-			player = replay_data["replaydata"]["players"]
-			scores = replay_data["replaydata"]["scores"]
-			water = replay_data["replaydata"]["water"]
-			sx = 600 / width
-			sy = 600 / height
-			//~ for ( i in im ) {
-				//~ s = im[i]
-				//~ im[i] = new Image()
-				//~ im[i].src = s
-			//~ }
-			play()
-		}
-		function clear() {
-			V.fillStyle = 'black'
-			V.fillRect(0,0,600,600)
-		}
-		function draw_frame(f) {
-			clear()
-			V.fillStyle = 'white'
-			V.strokeStyle = 'white'
-			info = "turn "+the_turn + "  ["
-			for ( i=0; i<player; i++ ) {
-				info += scores[i][the_turn] 
-				if (i !=player-1)
-					info += ","
-			}
-			info += "]"
-			V.fillText(info, 260,10)
-			for (w_index=0; w_index < water.length; w_index++) {
-				w = water[w_index]
-				row = w[0]
-				col = w[1]
-				x = col * sx
-				y = row * sy
-				V.fillStyle = 'white'
-				V.fillRect(x,y,sx,sy)
-			}
-			for (iter_frame=0;iter_frame<f;iter_frame++) {
-				frame = replay_data["replaydata"]["data"][iter_frame]
-				for (i in frame) {
-					var index = frame[i][4];
-//					if (frame[i][0] == 'a')
-//						index = 8;
-					V.fillStyle = color[index]
-//					V.strokeStyle = color[index]
-//					V.fillStyle = 'white'
-//					V.strokeStyle = 'white'
-//					V.fillRect(10, 10, 10, 10)
-//					img = frame[i][0] + frame[i][1]
-					x = frame[i][2] * sx
-					y = frame[i][1] * sy
-//					a = frame[i][4]
-//					end_arc = (frame[i][0]=="p" ? (frame[i][4] - (Math.PI * 2 / 3)): 0 )
-//					begin_arc = (frame[i][0]=="p" ? (frame[i][4] + (Math.PI * 2 / 3)): Math.PI * 2 )
-	
-//					r = (frame[i][0]=="b" ? 2 :(frame[i][0]=="p" ? 5 : (frame[i][1]+1)*(frame[i][1]+1)))
-				//~ V.rotate(r)
-				//~ V.translate(x,y)
-//					V.fillText(img, x,y)
-//					V.beginPath();
-//					V.arc(x,y, r*sx,begin_arc,end_arc,true);
-//					V.closePath();
-					V.fillRect(x,y,sx,sy)
-//					V.stroke();
-				//~ V.translate(-x,-y)
-				//~ if ( im[img] && im[img].data )
-					//~ V.drawImage(im[img], x,y)
-				//~ V.rotate(-r)
-				}
-			}
-		}
-        function stop() {
-            clearInterval(tick)
-            tick=-1
-        }
-        function back() {
-            stop()
-            if ( the_turn > 0 ) 
-                the_turn -= 1
-            draw_frame(the_turn)
-        }
-        function forw() {
-            stop()
-            if ( the_turn < nturns-1 ) 
-                the_turn += 1
-            draw_frame(the_turn)
-        }
-        function pos(t) {
-            stop()
-            the_turn = t
-            draw_frame(the_turn)
-        }
-        function play() {
-            tick = setInterval( function() {
-                if (the_turn < nturns)
-                {
-                    draw_frame(the_turn)
-                    the_turn += 1
-                } else {
-                    stop()
-                }
-            },200)
-        }
-		init()
-	</script>
-</canvas>
-<div>
-	<a href='javascript:pos(0)'>&lt;&lt;</a>&nbsp;
-	<a href='javascript:back()'>&lt;</a>&nbsp;
-	<a href='javascript:stop()'>stop</a>&nbsp;
-	<a href='javascript:play()'>play</a>&nbsp;
-	<a href='javascript:forw()'>&gt;</a>&nbsp;
-	<a href='javascript:pos(nturns-1)'>&gt;&gt;</a>&nbsp;
+<div id="main">
+<!-- <div id="wrapper"> -->
+<div id="visualizer">
+  <table id="players">
+    <tr>
+      <td width='40%' style="text-align:right" class="player1Name"></td>
+      <td width='20%' style="text-align:center" class="playerVs">Loading</td>
+      <td width='40%' style="text-align:left" class="player2Name"></td>
+    </tr>
+  </table>
+        
+  <canvas id="display" width="600" height="600"></canvas>
+  <p id="error_message"></p>
+  <p id="turnCounter"></p>
+  <p id="controls">
+      <a href="#" id="start-button" title="To start"><span class="small">|</span>&laquo;</a> | 
+      <a href="#" id="prev-frame-button" title="Step back (left arrow)">&laquo;</a> | 
+      <a href="#" id="play-button" title="Play/Pause (spacebar)">&#9654;</a> | 
+      <a href="#" id="next-frame-button" title="Step forward (right arrow)">&raquo;</a> | 
+      <a href="#" id="end-button" title="To end">&raquo;<span class="small">|</span></a>
+      <a href="#" id="speeddown" title="Slow down (down arrow)">-</a>
+      <a href="#" id="speedup" title="Speed up (up arrow)">+</a>
+  </p>
+  <p>
+    <canvas id="chart" width="600" height="100" ></canvas>
+  </p>
+        
 </div>
+    
+    </div>
+<!-- /div -->
+</div>
+
 </body>
 </html>
+
+<script>!window.jQuery && document.write('<script src="js/jquery-1.4.2.min.js"><\/script>')</script>
+  
+<script>
+	replay_data = ## REPLAY PLACEHOLDER ##;
+	data = ""
+	function init() {
+		r_data = replay_data["replaydata"]["data"]
+		playernames = replay_data["playernames"]
+		data =  "player_one=" + playernames[0] + "\n" + 
+				"player_two=" + playernames[1] + "\n" +
+				"playback_string=" + r_data
+	}
+	init()
+</script>	
+	
+<script src="js/visualizer.js?v=3"> </script>
