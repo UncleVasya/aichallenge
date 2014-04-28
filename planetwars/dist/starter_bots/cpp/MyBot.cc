@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     int c = std::cin.get();
     current_line += (char)c;
     if (c == '\n') {
-      if (current_line.length() >= 2 && (current_line.substr(0, 2) == "go") 
+      if (current_line.length() >= 2 && current_line.substr(0, 2) == "go" 
 		  || current_line.length() >= 5 && current_line.substr(0, 5) == "ready") 
 	{
         PlanetWars pw(map_data);
